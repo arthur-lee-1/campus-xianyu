@@ -1,0 +1,49 @@
+# ── 环境变量（绝不提交！）─────────────────────────────────────
+.env
+.env.local
+.env.*.local
+
+# ── Python ────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+venv/
+env/
+.venv/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+htmlcov/
+.coverage
+*.log
+
+# ── Django ────────────────────────────────────────────────────
+backend/staticfiles/
+backend/media/
+backend/db.sqlite3
+
+# ── Node / React ──────────────────────────────────────────────
+node_modules/
+frontend/dist/
+frontend/.vite/
+*.local
+
+# ── macOS ─────────────────────────────────────────────────────
+.DS_Store
+.AppleDouble
+
+# ── IDE ───────────────────────────────────────────────────────
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# ── Docker ────────────────────────────────────────────────────
+# docker-compose.override.yml 可本地覆盖配置，不提交
+docker-compose.override.yml
+
+# ── SSL 证书 ──────────────────────────────────────────────────
+deploy/nginx/certs/

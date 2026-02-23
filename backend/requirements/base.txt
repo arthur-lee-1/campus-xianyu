@@ -1,0 +1,17 @@
+Django==4.2.*
+djangorestframework==3.15.*
+djangorestframework-simplejwt==5.3.*
+django-cors-headers==4.3.*
+django-filter==24.1
+drf-spectacular==0.27.*
+psycopg2-binary==2.9.*
+Pillow==10.*
+celery==5.3.*
+redis==5.0.*
+django-redis==5.4.*
+python-dotenv==1.0.*
+gunicorn==21.*
+# 对象存储：阿里云 OSS 或腾讯云 COS（生产环境二选一）
+django-storages==1.14.*
+oss2==2.18.*          # 阿里云 OSS SDK
+# cos-python-sdk-v5   # 腾讯云 COS SDK（与 oss2 二选一，取消注释即可）
