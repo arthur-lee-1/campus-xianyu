@@ -1,0 +1,15 @@
+{
+  "dependencies": {
+    "@ant-design/icons": "^6.1.0",
+    "@tanstack/react-query": "^5.90.21",
+    "antd": "^6.3.0",
+    "axios": "^1.13.5",
+    "dayjs": "^1.11.19",
+    "react-hook-form": "^7.71.2",
+    "react-router-dom": "^6.30.3",
+    "zustand": "^5.0.11"
+  },
+  "devDependencies": {
+    "@types/node": "^25.3.0"
+  }
+}
