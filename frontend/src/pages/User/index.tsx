@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Header from '../../components/layout/header';
-import Footer from '../../components/layout/footer';
+import Header from '../../components/header';
+import Footer from '../../components/footer';
 
 // 模拟用户信息
 const mockUserInfo = {

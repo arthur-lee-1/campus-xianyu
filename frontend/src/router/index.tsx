@@ -15,7 +15,7 @@ const router = createBrowserRouter([
   {
     path: '/',
     element: <Home />
-  },s
+  },
   // 登录页
   {
     path: '/login',
