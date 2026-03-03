@@ -27,22 +27,26 @@
 ## ✨ 功能介绍
 
 ### 用户体系
+
 - **多方登录** — 手机号验证码 / 微信 OAuth / QQ OAuth
 - **个人主页** — 头像、昵称、简介、在售商品、买卖家综合评分展示
 - **关注系统** — 关注 / 取关其他用户，查看关注列表与粉丝列表
 
 ### 商品
+
 - **发布商品** — 多图上传（OSS 直传）、分类、定价、新旧程度标注
 - **商品搜索** — 关键词搜索 + 分类筛选 + 价格排序 + 无限滚动加载
 - **个性化推送** — 基于浏览历史与分类偏好的推荐列表（Redis 缓存）
 - **商品管理** — 在售 / 已售 / 下架状态自助管理
 
 ### 互动
+
 - **评论** — 支持一级回复的楼层式评论区
 - **点赞** — 商品点赞，乐观更新交互体验
 - **通知** — 新关注、交易状态变更等系统消息
 
 ### 交易
+
 - **交易流程** — 发起 → 卖家确认 → 交易中 → 完成 / 取消，全状态追踪
 - **双向评分** — 交易完成后买卖双方互评（星级 + 文字），每笔交易限评一次
 
@@ -50,24 +54,24 @@
 
 ## 🏗️ 技术栈
 
-| 层级 | 技术选型 |
-|------|----------|
-| **前端框架** | React 18 + TypeScript + Vite |
-| **状态管理** | Zustand |
-| **UI 组件库** | Arco Design |
-| **前端路由** | React Router v6 |
-| **HTTP 客户端** | Axios（含 JWT 自动刷新拦截器）|
-| **后端框架** | Django 4.2 + Django REST Framework |
-| **认证方案** | SimpleJWT（Access + Refresh Token + 黑名单）|
-| **数据库** | PostgreSQL 15 |
-| **缓存 / 队列** | Redis 7 |
-| **异步任务** | Celery |
-| **对象存储** | 阿里云 OSS / 腾讯云 COS（二选一）|
-| **Web 服务器** | Gunicorn + Nginx |
-| **容器化** | Docker + Docker Compose |
-| **部署环境** | Debian 12 |
-| **接口文档** | drf-spectacular（Swagger UI / ReDoc）|
-| **测试** | pytest-django + Locust |
+| 层级            | 技术选型                                     |
+| --------------- | -------------------------------------------- |
+| **前端框架**    | React 18 + TypeScript + Vite                 |
+| **状态管理**    | Zustand                                      |
+| **UI 组件库**   | Arco Design                                  |
+| **前端路由**    | React Router v6                              |
+| **HTTP 客户端** | Axios（含 JWT 自动刷新拦截器）               |
+| **后端框架**    | Django 4.2 + Django REST Framework           |
+| **认证方案**    | SimpleJWT（Access + Refresh Token + 黑名单） |
+| **数据库**      | PostgreSQL 15                                |
+| **缓存 / 队列** | Redis 7                                      |
+| **异步任务**    | Celery                                       |
+| **对象存储**    | 阿里云 OSS / 腾讯云 COS（二选一）            |
+| **Web 服务器**  | Gunicorn + Nginx                             |
+| **容器化**      | Docker + Docker Compose                      |
+| **部署环境**    | Debian 12                                    |
+| **接口文档**    | drf-spectacular（Swagger UI / ReDoc）        |
+| **测试**        | pytest-django + Locust                       |
 
 ---
 
@@ -144,7 +148,10 @@ docker compose up -d
 docker compose exec backend python manage.py migrate
 docker compose exec backend python manage.py createsuperuser
 
-# 5. 访问
+# 5. 测试指令
+docker compose run --rm backend pytest -q
+
+# 6. 访问
 #   前端:  http://localhost
 #   API:   http://localhost/api/
 #   文档:  http://localhost/api/docs/
@@ -239,13 +246,13 @@ User ────────── ThirdPartyAccount（微信 / QQ 绑定）
 
 ### 开发时间线（14 天）
 
-| 阶段 | 时间 | 主要交付物 |
-|------|------|-----------|
-| **设计 & 架构** | Day 1–2 | UI 原型（Figma）、数据库 ERD、API 规范文档、项目脚手架搭建 |
-| **核心功能** | Day 3–6 | 登录（手机号/微信/QQ）、商品 CRUD、OSS 上传、主页、搜索 |
-| **完整功能** | Day 7–10 | 点赞、评论、关注、交易状态机、双向评分、通知 |
-| **测试 & 修复** | Day 11–12 | 接口单元测试、UI 走查、压测报告、Bug 修复 |
-| **部署 & 验收** | Day 13–14 | 生产环境部署、全流程回归、文档归档、打 Tag `v1.0.0` |
+| 阶段            | 时间      | 主要交付物                                                 |
+| --------------- | --------- | ---------------------------------------------------------- |
+| **设计 & 架构** | Day 1–2   | UI 原型（Figma）、数据库 ERD、API 规范文档、项目脚手架搭建 |
+| **核心功能**    | Day 3–6   | 登录（手机号/微信/QQ）、商品 CRUD、OSS 上传、主页、搜索    |
+| **完整功能**    | Day 7–10  | 点赞、评论、关注、交易状态机、双向评分、通知               |
+| **测试 & 修复** | Day 11–12 | 接口单元测试、UI 走查、压测报告、Bug 修复                  |
+| **部署 & 验收** | Day 13–14 | 生产环境部署、全流程回归、文档归档、打 Tag `v1.0.0`        |
 
 ### 分支策略
 
@@ -323,12 +330,12 @@ chmod +x deploy/scripts/deploy.sh
 
 ## 👥 团队
 
-| 成员 | 角色 |
-|------|------|
-| A1 | 前端开发 |
-| A2 | 前端 / UI 设计 |
-| B1 | 后端开发 + 测试 |
-| B2 | 后端 + 运维 + **项目负责人** |
+| 成员 | 角色                         |
+| ---- | ---------------------------- |
+| A1   | 前端开发                     |
+| A2   | 前端 / UI 设计               |
+| B1   | 后端开发 + 测试              |
+| B2   | 后端 + 运维 + **项目负责人** |
 
 ---
 
