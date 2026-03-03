@@ -1,22 +1,30 @@
-FROM python:3.11-slim
+FROM swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/python:3.11-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
-# 安装系统依赖（Pillow 需要）
-RUN apt-get update && apt-get install -y \
-    libpq-dev gcc \
-    && rm -rf /var/lib/apt/lists/*
+# 安装系统依赖（兼容 Debian 12 的 debian.sources）
+# 安装系统依赖
+RUN set -eux; \
+    rm -f /etc/apt/sources.list.d/debian.sources; \
+    printf '%s\n' \
+    'deb https://mirrors.ustc.edu.cn/debian/ bookworm main contrib non-free non-free-firmware' \
+    'deb https://mirrors.ustc.edu.cn/debian/ bookworm-updates main contrib non-free non-free-firmware' \
+    'deb https://mirrors.ustc.edu.cn/debian-security/ bookworm-security main contrib non-free non-free-firmware' \
+    > /etc/apt/sources.list; \
+    apt-get -o Acquire::ForceIPv4=true -o Acquire::Retries=8 -o Acquire::https::Timeout=30 update; \
+    apt-get install -y --no-install-recommends libpq-dev gcc; \
+    rm -rf /var/lib/apt/lists/*
 
-# 安装 Python 依赖
-COPY requirements/production.txt requirements.txt
-RUN pip install --no-cache-dir -r requirements.txt
+# 安装 Python 依赖（可用国内 PyPI 镜像）
+COPY requirements /tmp/requirements
+RUN pip install --no-cache-dir -i https://pypi.tuna.tsinghua.edu.cn/simple -r /tmp/requirements/development.txt
 
 COPY . .
 
-# Django 静态文件收集
-RUN python manage.py collectstatic --noinput --settings=config.settings.production
+# 本地跑 pytest 可先注释，避免 production 配置依赖环境变量导致构建失败
+# RUN python manage.py collectstatic --noinput --settings=config.settings.production
 
 EXPOSE 8000
