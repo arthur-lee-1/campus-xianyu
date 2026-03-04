@@ -102,6 +102,12 @@ export default function Home() {
   const navigate = useNavigate();
   const logout = useAuthStore((s) => s.logout);
 
+  const handleLogout = () => {
+    // 清空本地登录态，然后回到登录页
+    logout();
+    navigate('/login', { replace: true });
+  };
+
   const [activeCampus, setActiveCampus] = useState<CampusKey | 'all'>('all');
   const [keyword, setKeyword] = useState('');
 
@@ -126,7 +132,7 @@ export default function Home() {
           <Title heading={3} className={styles.appTitle}>
             校园集市
           </Title>
-          <Button type="text" size="small" onClick={logout}>
+          <Button type="text" size="small" onClick={handleLogout}>
             退出登录
           </Button>
         </div>

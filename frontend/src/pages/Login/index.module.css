@@ -10,7 +10,7 @@
     linear-gradient(135deg, #fff7e6 0%, #ffe7ba 35%, #ffd591 60%, #ffa940 100%);
 }
 
-/* 两个柔和的背景装饰，增强“高级感” */
+
 .bgDecor1,
 .bgDecor2 {
   position: absolute;

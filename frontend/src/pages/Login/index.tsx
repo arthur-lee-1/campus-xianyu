@@ -148,8 +148,7 @@ export default function Login() {
 
         {/* 
           ⚠️ 注意：Arco Form 的字段绑定建议让“带 field 的 Form.Item”直接包裹 Input。
-          如果外面再包一层 div，有些情况下表单可能拿不到值，导致你截图那种：
-          明明输入了验证码，但仍然提示“请输入验证码 / 无法提交”。
+          如果外面再包一层 div，有些情况下表单可能拿不到值。
           
           这里采用“双层 Form.Item”：
           - 外层只负责 label 和布局
@@ -249,14 +248,14 @@ export default function Login() {
                 <IconStorage className={styles.pointIcon} />
                 <div>
                   <div className={styles.pointTitle}>更省心</div>
-                  <div className={styles.pointDesc}>手机号一键登录，快速开始</div>
+                  <div className={styles.pointDesc}>各方式一键登录，快速开始</div>
                 </div>
               </div>
               <div className={styles.point}>
                 <IconCheckCircle className={styles.pointIcon} />
                 <div>
-                  <div className={styles.pointTitle}>更顺滑</div>
-                  <div className={styles.pointDesc}>验证码倒计时与友好提示</div>
+                  <div className={styles.pointTitle}>更丝滑</div>
+                  <div className={styles.pointDesc}>集市物品一目了然，不再受寻找之苦</div>
                 </div>
               </div>
             </div>
