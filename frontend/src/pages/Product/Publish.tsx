@@ -51,8 +51,9 @@ export default function Publish() {
       // 例如：await http.post('/api/products/', payload)
       await new Promise((r) => setTimeout(r, 800));
 
-      Message.success('发布成功，已为你跳转到“我的商品”');
-      navigate('/my-products', { replace: true });
+      Message.success('发布成功，可在“我的商品”中查看');
+      // 发布成功后保持在当前页，顺便清空表单，方便继续发布下一件
+      form.resetFields();
     } catch (e) {
       Message.error('发布失败，请稍后重试');
     } finally {
