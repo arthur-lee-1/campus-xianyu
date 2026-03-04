@@ -194,6 +194,11 @@
   font-size: 12px;
 }
 
+.dmButton {
+  min-width: 76px;
+  justify-content: center;
+}
+
 .bottomNav {
   position: fixed;
   left: 0;

@@ -112,11 +112,6 @@ export default function Profile() {
               </div>
             </div>
           </div>
-          <div className={styles.ratingTags}>
-            <Tag color="arcoblue">沟通顺畅</Tag>
-            <Tag color="green">发货及时</Tag>
-            <Tag color="orangered">宝贝与描述一致</Tag>
-          </div>
         </section>
 
         <Divider style={{ margin: 16 }} />
@@ -228,7 +223,16 @@ export default function Profile() {
                         </Text>
                       </div>
                     </div>
-                    <Button size="small" type="outline">
+                    <Button
+                      size="small"
+                      type="outline"
+                      className={styles.dmButton}
+                      onClick={() =>
+                        navigate('/notifications', {
+                          state: { peerId: id, peerName: `用户 ${id}` },
+                        })
+                      }
+                    >
                       私信
                     </Button>
                   </div>
@@ -251,13 +255,19 @@ export default function Profile() {
                       </Avatar>
                       <div>
                         <Text className={styles.userName}>粉丝 {id}</Text>
-                        <Text type="secondary" className={styles.userMeta}>
-                          最近一次互动：2025-09-{10 + id}
-                        </Text>
                       </div>
                     </div>
-                    <Button size="small" type="outline">
-                      回关
+                    <Button
+                      size="small"
+                      type="outline"
+                      className={styles.dmButton}
+                      onClick={() =>
+                        navigate('/notifications', {
+                          state: { peerId: id, peerName: `粉丝 ${id}` },
+                        })
+                      }
+                    >
+                      私信
                     </Button>
                   </div>
                 ))}

@@ -86,6 +86,125 @@
   color: rgba(0, 0, 0, 0.68);
 }
 
+.commentBlock {
+  margin-top: 12px;
+  padding: 14px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.82);
+  border: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+.commentList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.commentItem {
+  display: flex;
+  gap: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.commentItem:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.commentAvatar {
+  cursor: pointer;
+  background: linear-gradient(135deg, #2f54eb, #1890ff);
+}
+
+.commentContent {
+  flex: 1;
+  min-width: 0;
+}
+
+.commentHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.commentUser {
+  font-weight: 700;
+}
+
+.commentTime {
+  font-size: 12px;
+}
+
+.commentText {
+  margin: 4px 0 6px;
+  color: rgba(0, 0, 0, 0.72);
+}
+
+.commentFoot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.heartBtn {
+  color: rgba(0, 0, 0, 0.55);
+}
+
+.heartBtnActive {
+  color: #ff4d4f;
+}
+
+.replyList {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.025);
+}
+
+.replyItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.replyAvatar {
+  cursor: pointer;
+  background: linear-gradient(135deg, #69c0ff, #2f54eb);
+}
+
+.replyBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.replyHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
+.replyUser {
+  font-weight: 600;
+}
+
+.replyTime {
+  font-size: 11px;
+}
+
+.replyEditor {
+  margin-top: 8px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+}
+
 .titleBlock {
   display: flex;
   justify-content: space-between;
@@ -189,11 +308,21 @@
 
 .sellerAvatar {
   background: linear-gradient(135deg, #2f54eb, #1890ff);
+  cursor: pointer;
 }
 
 .sellerName {
   font-weight: 800;
   color: rgba(0, 0, 0, 0.85);
+}
+
+.sellerNameButton {
+  border: none;
+  background: transparent;
+  padding: 0;
+  font-weight: 800;
+  color: rgba(0, 0, 0, 0.85);
+  cursor: pointer;
 }
 
 .sellerRating {

@@ -6,11 +6,12 @@ import {
   Carousel,
   Divider,
   Grid,
+  Input,
   Space,
   Tag,
   Typography,
 } from '@arco-design/web-react';
-import { IconMessage, IconStar, IconUser } from '@arco-design/web-react/icon';
+import { IconHeart, IconMessage, IconStar, IconUser } from '@arco-design/web-react/icon';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useSocialStore } from '@/store/social';
 import styles from './Detail.module.css';
@@ -31,12 +32,30 @@ type Product = {
   description: string;
   images: string[];
   seller: {
+    id: number;
     nickname: string;
     rating: number;
     ratingCount: number;
   };
   favorites: number;
   status: 'on_sale' | 'sold' | 'off';
+};
+
+type CommentItem = {
+  id: string;
+  userId: number;
+  username: string;
+  content: string;
+  time: string;
+  likes: number;
+  likedByMe: boolean;
+  replies: {
+    id: string;
+    userId: number;
+    username: string;
+    content: string;
+    time: string;
+  }[];
 };
 
 const MOCK_PRODUCTS: Product[] = [
@@ -50,9 +69,50 @@ const MOCK_PRODUCTS: Product[] = [
     description:
       '只用了一学期，部分页有铅笔标注，已用橡皮擦浅处理，整体干净可用。支持西海岸校区面交。',
     images: ['', '', '', '', ''],
-    seller: { nickname: '海大数院同学', rating: 4.9, ratingCount: 18 },
+    seller: { id: 1, nickname: '海大数院同学', rating: 4.9, ratingCount: 18 },
     favorites: 6,
     status: 'on_sale',
+  },
+];
+
+const MOCK_COMMENTS: CommentItem[] = [
+  {
+    id: 'c1',
+    userId: 2,
+    username: '鱼山小同学',
+    content: '请问可以今天晚上校内面交吗？',
+    time: '2026-03-01 11:07',
+    likes: 35,
+    likedByMe: false,
+    replies: [
+      {
+        id: 'r11',
+        userId: 1,
+        username: '海大数院同学',
+        content: '可以的，今晚 7 点后都可以。',
+        time: '2026-03-01 11:20',
+      },
+    ],
+  },
+  {
+    id: 'c2',
+    userId: 3,
+    username: '百变小可',
+    content: '这本书内容挺全的，适合期末前快速复习。',
+    time: '2026-02-28 19:44',
+    likes: 38,
+    likedByMe: false,
+    replies: [],
+  },
+  {
+    id: 'c3',
+    userId: 4,
+    username: '沙枫冰兰',
+    content: '买过一次，卖家回复很快，交易流程也很顺畅。',
+    time: '2026-03-02 14:18',
+    likes: 14,
+    likedByMe: false,
+    replies: [],
   },
 ];
 
@@ -81,8 +141,55 @@ export default function ProductDetail() {
 
   const [collected, setCollected] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [comments, setComments] = useState<CommentItem[]>(MOCK_COMMENTS);
+  const [replyingId, setReplyingId] = useState<string | null>(null);
+  const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
   const images = product.images.length > 0 ? product.images : [''];
   const total = images.length;
+
+  const nowText = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  };
+
+  const toggleCommentLike = (commentId: string) => {
+    setComments((prev) =>
+      prev.map((item) => {
+        if (item.id !== commentId) return item;
+        const nextLiked = !item.likedByMe;
+        return {
+          ...item,
+          likedByMe: nextLiked,
+          likes: nextLiked ? item.likes + 1 : Math.max(0, item.likes - 1),
+        };
+      }),
+    );
+  };
+
+  const submitReply = (commentId: string) => {
+    const text = (replyDrafts[commentId] || '').trim();
+    if (!text) return;
+    setComments((prev) =>
+      prev.map((item) => {
+        if (item.id !== commentId) return item;
+        return {
+          ...item,
+          replies: [
+            ...item.replies,
+            {
+              id: `r_${Date.now()}`,
+              userId: 0,
+              username: '我',
+              content: text,
+              time: nowText(),
+            },
+          ],
+        };
+      }),
+    );
+    setReplyDrafts((prev) => ({ ...prev, [commentId]: '' }));
+    setReplyingId(null);
+  };
 
   const handleBack = () => {
     const fromState = location.state as { fromProfile?: boolean; tab?: string } | null;
@@ -124,6 +231,93 @@ export default function ProductDetail() {
               <div className={styles.blockTitle}>商品描述</div>
               <Paragraph className={styles.desc}>{product.description}</Paragraph>
             </div>
+
+            <div className={styles.commentBlock}>
+              <div className={styles.blockTitle}>讨论区</div>
+              <div className={styles.commentList}>
+                {comments.map((item) => (
+                  <div key={item.id} className={styles.commentItem}>
+                    <Avatar
+                      size={36}
+                      className={styles.commentAvatar}
+                      onClick={() => navigate(`/seller/${item.userId}`)}
+                    >
+                      {item.username.slice(0, 1)}
+                    </Avatar>
+                    <div className={styles.commentContent}>
+                      <div className={styles.commentHead}>
+                        <Text className={styles.commentUser}>{item.username}</Text>
+                        <Text type="secondary" className={styles.commentTime}>
+                          {item.time}
+                        </Text>
+                      </div>
+                      <Paragraph className={styles.commentText}>{item.content}</Paragraph>
+                      <div className={styles.commentFoot}>
+                        <Button
+                          type="text"
+                          size="mini"
+                          className={`${styles.heartBtn} ${item.likedByMe ? styles.heartBtnActive : ''}`}
+                          icon={<IconHeart />}
+                          onClick={() => toggleCommentLike(item.id)}
+                        >
+                          {item.likes}
+                        </Button>
+                        <Button
+                          type="text"
+                          size="mini"
+                          onClick={() => setReplyingId((prev) => (prev === item.id ? null : item.id))}
+                        >
+                          回复
+                        </Button>
+                      </div>
+                      {item.replies.length > 0 && (
+                        <div className={styles.replyList}>
+                          {item.replies.map((reply) => (
+                            <div key={reply.id} className={styles.replyItem}>
+                              <Avatar
+                                size={24}
+                                className={styles.replyAvatar}
+                                onClick={() => {
+                                  if (reply.userId > 0) navigate(`/seller/${reply.userId}`);
+                                }}
+                              >
+                                {reply.username.slice(0, 1)}
+                              </Avatar>
+                              <div className={styles.replyBody}>
+                                <div className={styles.replyHead}>
+                                  <Text className={styles.replyUser}>{reply.username}</Text>
+                                  <Text type="secondary" className={styles.replyTime}>
+                                    {reply.time}
+                                  </Text>
+                                </div>
+                                <Text>{reply.content}</Text>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {replyingId === item.id && (
+                        <div className={styles.replyEditor}>
+                          <Input
+                            placeholder="输入回复内容..."
+                            value={replyDrafts[item.id] || ''}
+                            onChange={(v) =>
+                              setReplyDrafts((prev) => ({
+                                ...prev,
+                                [item.id]: v,
+                              }))
+                            }
+                          />
+                          <Button type="primary" size="small" onClick={() => submitReply(item.id)}>
+                            发送
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </Col>
 
           <Col xs={24} md={10} className={styles.right}>
@@ -160,11 +354,21 @@ export default function ProductDetail() {
             <div className={styles.sellerCard}>
               <div className={styles.sellerHeader}>
                 <div className={styles.sellerLeft}>
-                  <Avatar size={44} className={styles.sellerAvatar}>
+                  <Avatar
+                    size={44}
+                    className={styles.sellerAvatar}
+                    onClick={() => navigate(`/seller/${product.seller.id}`)}
+                  >
                     <IconUser />
                   </Avatar>
                   <div>
-                    <div className={styles.sellerName}>{product.seller.nickname}</div>
+                    <button
+                      type="button"
+                      className={styles.sellerNameButton}
+                      onClick={() => navigate(`/seller/${product.seller.id}`)}
+                    >
+                      {product.seller.nickname}
+                    </button>
                     <div className={styles.sellerRating}>
                       <div className={styles.starBar}>
                         <div className={styles.starBarBg}>
@@ -208,7 +412,15 @@ export default function ProductDetail() {
                 >
                   {collected ? '已收藏' : '收藏'}（{product.favorites + (collected ? 1 : 0)}）
                 </Button>
-                <Button type="primary" icon={<IconMessage />} onClick={() => navigate('/chat')}>
+                <Button
+                  type="primary"
+                  icon={<IconMessage />}
+                  onClick={() =>
+                    navigate('/notifications', {
+                      state: { peerId: product.seller.id, peerName: product.seller.nickname },
+                    })
+                  }
+                >
                   联系卖家
                 </Button>
               </Space>

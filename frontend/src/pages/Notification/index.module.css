@@ -1,0 +1,255 @@
+.wrapper {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background:
+    radial-gradient(900px 420px at 0% 0%, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0) 60%),
+    radial-gradient(700px 360px at 100% 14%, rgba(193, 222, 255, 0.5), rgba(255, 255, 255, 0) 65%),
+    linear-gradient(180deg, #f2f7ff 0%, #e0f1ff 32%, #eef7ff 70%, #ffffff 100%);
+}
+
+.mainPanel {
+  flex: 1;
+  margin: 12px;
+  margin-bottom: 72px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 14px 42px rgba(0, 0, 0, 0.08);
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  overflow: hidden;
+}
+
+.sidebar {
+  border-right: 1px solid rgba(0, 0, 0, 0.06);
+  background: rgba(255, 255, 255, 0.75);
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebarTop {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px;
+  padding: 10px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.conversationList {
+  overflow: auto;
+}
+
+.convItem {
+  width: 100%;
+  border: none;
+  background: transparent;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px;
+  align-items: center;
+  padding: 10px;
+  text-align: left;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.03);
+}
+
+.avatarWrap {
+  position: relative;
+  width: 46px;
+  height: 46px;
+}
+
+.convAvatar {
+  cursor: pointer;
+}
+
+.avatarOnlineDot {
+  position: absolute;
+  right: -1px;
+  bottom: -1px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #52c41a;
+  border: 2px solid #fff;
+}
+
+.convItemActive {
+  background: rgba(47, 84, 235, 0.08);
+}
+
+.convMeta {
+  min-width: 0;
+}
+
+.convHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2px;
+  gap: 8px;
+}
+
+.convName {
+  font-weight: 600;
+}
+
+.convTime {
+  font-size: 12px;
+}
+
+.convPreview {
+  font-size: 12px;
+  display: inline-block;
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.convStatus {
+  font-size: 11px;
+  display: inline-block;
+  margin-top: 2px;
+}
+
+.chatArea {
+  display: flex;
+  flex-direction: column;
+}
+
+.chatHeader {
+  height: 54px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 14px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.onlineDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #52c41a;
+}
+
+.headerAvatar {
+  background: linear-gradient(135deg, #2f54eb, #1890ff);
+}
+
+.messageList {
+  flex: 1;
+  overflow: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.msgRow {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.msgAvatar {
+  cursor: pointer;
+}
+
+.msgMine {
+  justify-content: flex-end;
+}
+
+.msgBubble {
+  max-width: min(70%, 520px);
+  border-radius: 12px;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.msgMine .msgBubble {
+  background: rgba(47, 84, 235, 0.9);
+  color: #fff;
+  border-color: transparent;
+}
+
+.msgTime {
+  margin-top: 4px;
+  font-size: 11px;
+  opacity: 0.7;
+}
+
+.timeCenter {
+  margin: 2px auto 6px;
+  width: fit-content;
+  font-size: 11px;
+  color: rgba(0, 0, 0, 0.45);
+  background: rgba(255, 255, 255, 0.75);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+
+.chatFooter {
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.75);
+}
+
+.sendRow {
+  margin-top: 8px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.bottomNav {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 56px;
+  padding-bottom: env(safe-area-inset-bottom, 0);
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 -6px 22px rgba(0, 0, 0, 0.06);
+}
+
+.navItem {
+  flex: 1;
+  height: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 2px;
+  font-size: 11px;
+  color: rgba(0, 0, 0, 0.45);
+}
+
+.navItem svg {
+  font-size: 18px;
+}
+
+.navItemActive {
+  color: var(--color-primary-6);
+}
+
+@media (max-width: 920px) {
+  .mainPanel {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    max-height: 220px;
+  }
+}
