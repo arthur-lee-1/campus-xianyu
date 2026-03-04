@@ -1,0 +1,38 @@
+/**
+ * 橙色主题（尽量不侵入组件逻辑）
+ *
+ * 目标：
+ * - 登录页以“橙色”为主色调
+ * - 让 Arco 的 primary 色更偏橙（通过 CSS 变量覆盖）
+ *
+ * 备注：
+ * - Arco 的颜色体系基于 CSS Variables。不同版本变量名可能略有差异，
+ *   这里覆盖最常见的一组 `--color-primary-*`，并对按钮做少量基础样式。
+ */
+
+:root {
+  /* 基础色板：从浅到深 */
+  --color-primary-1: #fff7e6;
+  --color-primary-2: #ffe7ba;
+  --color-primary-3: #ffd591;
+  --color-primary-4: #ffc069;
+  --color-primary-5: #ffa940;
+  --color-primary-6: #fa8c16; /* 主色（推荐） */
+  --color-primary-7: #d46b08;
+  --color-primary-8: #ad4e00;
+  --color-primary-9: #873800;
+  --color-primary-10: #612500;
+}
+
+/* 如果某些组件未完全走变量，也能保持“橙色主按钮” */
+.arco-btn-primary {
+  background-color: var(--color-primary-6);
+  border-color: var(--color-primary-6);
+}
+
+.arco-btn-primary:hover,
+.arco-btn-primary:focus {
+  background-color: var(--color-primary-7);
+  border-color: var(--color-primary-7);
+}
+
