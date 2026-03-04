@@ -59,11 +59,7 @@
 }
 
 .productGrid {
-<<<<<<< HEAD
-  margin-top: 4px;
-=======
   margin-top: 8px;
->>>>>>> Show-website-page
 }
 
 .productCard {
@@ -73,10 +69,7 @@
   border: 1px solid rgba(0, 0, 0, 0.06);
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.06);
   transition: transform 120ms ease, box-shadow 120ms ease;
-<<<<<<< HEAD
-=======
   margin-bottom: 10px;
->>>>>>> Show-website-page
 }
 
 .productCard:hover {

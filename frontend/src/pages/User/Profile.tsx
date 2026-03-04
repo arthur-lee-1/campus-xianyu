@@ -1,9 +1,4 @@
-<<<<<<< HEAD
-=======
-<<<<<<< Updated upstream
-=======
 import { useEffect, useState } from 'react';
->>>>>>> Show-website-page
 import {
   Avatar,
   Button,
@@ -14,24 +9,22 @@ import {
   Tag,
   Typography,
 } from '@arco-design/web-react';
-<<<<<<< HEAD
-import { IconUser, IconEdit, IconStar } from '@arco-design/web-react/icon';
-import { useNavigate } from 'react-router-dom';
-import styles from './Profile.module.css';
-
-const { Title, Paragraph, Text } = Typography;
-
-=======
-import { IconUser, IconEdit, IconStar, IconHome, IconUpload, IconMessage } from '@arco-design/web-react/icon';
+import {
+  IconUser,
+  IconEdit,
+  IconStar,
+  IconHome,
+  IconUpload,
+  IconMessage,
+} from '@arco-design/web-react/icon';
 import { useLocation, useNavigate } from 'react-router-dom';
-import styles from './Profile.module.css';
 import { useSocialStore } from '@/store/social';
+import styles from './Profile.module.css';
 
 const { Title, Paragraph, Text } = Typography;
 
 type TabKey = 'products' | 'favorites' | 'following' | 'followers';
 
->>>>>>> Show-website-page
 const MOCK_USER = {
   nickname: 'A',
   campus: '中国海洋大学 · 崂山校区',
@@ -39,15 +32,12 @@ const MOCK_USER = {
   rating: 4.8,
   ratingCount: 23,
   followers: 56,
-  following: 18,
   onSaleCount: 3,
   dealCount: 12,
 };
 
 export default function Profile() {
   const navigate = useNavigate();
-<<<<<<< HEAD
-=======
   const location = useLocation();
   const following = useSocialStore((s) => s.following);
   const [activeTab, setActiveTab] = useState<TabKey>('products');
@@ -58,7 +48,6 @@ export default function Profile() {
       setActiveTab(fromState);
     }
   }, [location.state]);
->>>>>>> Show-website-page
 
   return (
     <div className={styles.wrapper}>
@@ -95,11 +84,7 @@ export default function Profile() {
           </div>
           <div className={styles.statItem}>
             <Text type="secondary">关注</Text>
-<<<<<<< HEAD
-            <Text bold>{MOCK_USER.following}</Text>
-=======
             <Text bold>{following}</Text>
->>>>>>> Show-website-page
           </div>
           <div className={styles.statItem}>
             <Text type="secondary">粉丝</Text>
@@ -136,34 +121,6 @@ export default function Profile() {
 
         <Divider style={{ margin: 16 }} />
 
-<<<<<<< HEAD
-        <section className={styles.section}>
-          <div className={styles.sectionHeader}>
-            <Text className={styles.sectionTitle}>在售商品预览</Text>
-            <Button type="text" size="small" onClick={() => navigate('/my-products')}>
-              查看全部
-            </Button>
-          </div>
-          <div className={styles.productPreview}>
-            {[1, 2, 3].map((id) => (
-              <Card
-                key={id}
-                hoverable
-                className={styles.productCard}
-                onClick={() => navigate('/my-products')}
-              >
-                <div className={styles.productThumb} />
-                <Space size={4} direction="vertical" style={{ width: '100%' }}>
-                  <Text className={styles.productTitle}>示例商品 {id}</Text>
-                  <Text className={styles.productPrice}>￥{20 + id * 5}</Text>
-                </Space>
-              </Card>
-            ))}
-          </div>
-        </section>
-      </Card>
-=======
-        {/* 中部四个入口：我的商品 / 我的收藏 / 我的关注 / 我的粉丝 */}
         <section className={styles.section}>
           <div className={styles.tabBar}>
             <button
@@ -196,7 +153,6 @@ export default function Profile() {
             </button>
           </div>
 
-          {/* 下方根据 tab 展示不同内容 */}
           {activeTab === 'products' && (
             <div>
               <div className={styles.sectionHeader}>
@@ -221,9 +177,6 @@ export default function Profile() {
                   </Card>
                 ))}
               </div>
-              <Paragraph type="secondary" style={{ marginTop: 8 }}>
-                这里是「我的商品」区域，最近发布的商品会优先展示，点击可跳转到商品详情。
-              </Paragraph>
             </div>
           )}
 
@@ -253,9 +206,6 @@ export default function Profile() {
                   </Card>
                 ))}
               </div>
-              <Paragraph type="secondary" style={{ marginTop: 8 }}>
-                这是个人收藏页面，你在商品详情页点「收藏」的物品都会展示在这里，点击可跳转到详情页。
-              </Paragraph>
             </div>
           )}
 
@@ -284,9 +234,6 @@ export default function Profile() {
                   </div>
                 ))}
               </div>
-              <Paragraph type="secondary" style={{ marginTop: 8 }}>
-                这里是「我的关注」列表，展示你关注的卖家 / 买家。后续可以在这里进入对方主页或发起私信。
-              </Paragraph>
             </div>
           )}
 
@@ -315,36 +262,21 @@ export default function Profile() {
                   </div>
                 ))}
               </div>
-              <Paragraph type="secondary" style={{ marginTop: 8 }}>
-                这里是「我的粉丝」列表，展示关注你的人。后续可以从这里进入粉丝主页并回关或私信。
-              </Paragraph>
             </div>
           )}
         </section>
       </Card>
 
       <nav className={styles.bottomNav}>
-        <button
-          type="button"
-          className={styles.navItem}
-          onClick={() => navigate('/')}
-        >
+        <button type="button" className={styles.navItem} onClick={() => navigate('/')}>
           <IconHome />
           <span>主页</span>
         </button>
-        <button
-          type="button"
-          className={styles.navItem}
-          onClick={() => navigate('/publish')}
-        >
+        <button type="button" className={styles.navItem} onClick={() => navigate('/publish')}>
           <IconUpload />
           <span>上传商品</span>
         </button>
-        <button
-          type="button"
-          className={styles.navItem}
-          onClick={() => navigate('/notifications')}
-        >
+        <button type="button" className={styles.navItem} onClick={() => navigate('/notifications')}>
           <IconMessage />
           <span>消息</span>
         </button>
@@ -357,12 +289,6 @@ export default function Profile() {
           <span>个人</span>
         </button>
       </nav>
->>>>>>> Show-website-page
     </div>
   );
 }
-
-<<<<<<< HEAD
-=======
->>>>>>> Stashed changes
->>>>>>> Show-website-page

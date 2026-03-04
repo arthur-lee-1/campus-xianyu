@@ -1,14 +1,3 @@
-<<<<<<< HEAD
-import { Typography } from '@arco-design/web-react';
-
-const { Title, Paragraph } = Typography;
-
-export default function ProductDetail() {
-  return (
-    <div style={{ padding: 24 }}>
-      <Title heading={3}>商品详情（开发中）</Title>
-      <Paragraph>这里将来是商品信息、图片轮播、卖家信息等内容。</Paragraph>
-=======
 import { useMemo, useState } from 'react';
 import {
   Avatar,
@@ -50,7 +39,6 @@ type Product = {
   status: 'on_sale' | 'sold' | 'off';
 };
 
-// 先用 mock 数据把 UI 做到位；后续接后端时用接口替换即可
 const MOCK_PRODUCTS: Product[] = [
   {
     id: 1,
@@ -80,18 +68,6 @@ function statusTag(status: Product['status']) {
   return <Tag color="gray">已下架</Tag>;
 }
 
-/**
- * 商品详情页（按你给的草图布局）
- *
- * 结构：
- * - 整体：浅蓝背景 + 大卡片容器
- * - 左侧：商品图片轮播（可左右滑动）+ 页码 1/5
- * - 右侧：价格突出 + 标题/状态 + 商品信息 + 卖家信息 + 点赞/联系卖家按钮
- *
- * 备注：
- * - 现在图片用渐变占位（images 为空字符串）；后续接 OSS 图片 URL 后会自动显示真实图片
- * - “联系卖家”目前跳转到 `/chat`（占位聊天页）
- */
 export default function ProductDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -105,7 +81,6 @@ export default function ProductDetail() {
 
   const [collected, setCollected] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
-
   const images = product.images.length > 0 ? product.images : [''];
   const total = images.length;
 
@@ -122,7 +97,6 @@ export default function ProductDetail() {
     <div className={styles.wrapper}>
       <Card className={styles.card} bordered={false}>
         <Row gutter={18} className={styles.layoutRow}>
-          {/* 左侧：图片轮播 */}
           <Col xs={24} md={14} className={styles.left}>
             <div className={styles.carouselWrap}>
               <Carousel
@@ -133,20 +107,14 @@ export default function ProductDetail() {
               >
                 {images.map((src, idx) => (
                   <div key={idx} className={styles.slide}>
-                    {/* 用 div 做图层：src 为空时也能有漂亮占位 */}
                     <div
                       className={styles.slideImage}
-                      style={
-                        src
-                          ? { backgroundImage: `url(${src})` }
-                          : undefined
-                      }
+                      style={src ? { backgroundImage: `url(${src})` } : undefined}
                       aria-label={`商品图片 ${idx + 1}`}
                     />
                   </div>
                 ))}
               </Carousel>
-
               <div className={styles.pager}>
                 {activeIndex + 1}/{total}
               </div>
@@ -158,7 +126,6 @@ export default function ProductDetail() {
             </div>
           </Col>
 
-          {/* 右侧：信息/操作 */}
           <Col xs={24} md={10} className={styles.right}>
             <div className={styles.priceLine}>
               <span className={styles.priceSymbol}>￥</span>
@@ -199,7 +166,6 @@ export default function ProductDetail() {
                   <div>
                     <div className={styles.sellerName}>{product.seller.nickname}</div>
                     <div className={styles.sellerRating}>
-                      {/* 自定义星级：通过宽度控制填充比例，例如 4.9 分 ≈ 98% */}
                       <div className={styles.starBar}>
                         <div className={styles.starBarBg}>
                           {Array.from({ length: 5 }).map((_, i) => (
@@ -215,9 +181,7 @@ export default function ProductDetail() {
                           ))}
                         </div>
                       </div>
-                      <Text className={styles.sellerScore}>
-                        {product.seller.rating.toFixed(1)}
-                      </Text>
+                      <Text className={styles.sellerScore}>{product.seller.rating.toFixed(1)}</Text>
                       <Text type="secondary" className={styles.sellerCount}>
                         来自 {product.seller.ratingCount} 条评价
                       </Text>
@@ -242,14 +206,9 @@ export default function ProductDetail() {
                   icon={<IconStar />}
                   onClick={() => setCollected((v) => !v)}
                 >
-                  {collected ? '已收藏' : '收藏'}（
-                  {product.favorites + (collected ? 1 : 0)}）
+                  {collected ? '已收藏' : '收藏'}（{product.favorites + (collected ? 1 : 0)}）
                 </Button>
-                <Button
-                  type="primary"
-                  icon={<IconMessage />}
-                  onClick={() => navigate('/chat')}
-                >
+                <Button type="primary" icon={<IconMessage />} onClick={() => navigate('/chat')}>
                   联系卖家
                 </Button>
               </Space>
@@ -263,8 +222,6 @@ export default function ProductDetail() {
           </Col>
         </Row>
       </Card>
->>>>>>> Show-website-page
     </div>
   );
 }
-
