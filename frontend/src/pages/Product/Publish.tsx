@@ -1,3 +1,8 @@
+<<<<<<< HEAD
+=======
+<<<<<<< Updated upstream
+=======
+>>>>>>> Show-website-page
 import { useState } from 'react';
 import {
   Button,
@@ -11,8 +16,14 @@ import {
   Upload,
   Typography,
 } from '@arco-design/web-react';
+<<<<<<< HEAD
 import { IconPlus, IconUpload } from '@arco-design/web-react/icon';
 import { useNavigate } from 'react-router-dom';
+=======
+import { IconPlus, IconUpload, IconHome, IconMessage, IconUser } from '@arco-design/web-react/icon';
+import { useNavigate } from 'react-router-dom';
+import styles from './Publish.module.css';
+>>>>>>> Show-website-page
 
 const { Title, Paragraph, Text } = Typography;
 const Row = Grid.Row;
@@ -66,6 +77,7 @@ export default function Publish() {
   };
 
   return (
+<<<<<<< HEAD
     <div style={{ padding: '16px 12px 72px' }}>
       <Row justify="center">
         <Col xs={24} sm={22} md={18} lg={14} xl={12}>
@@ -93,6 +105,36 @@ export default function Publish() {
                 }}
                 onSubmit={handleSubmit}
               >
+=======
+    <div className={styles.wrapper}>
+      <div className={styles.content}>
+        <Row justify="center">
+          <Col xs={24} sm={22} md={18} lg={14} xl={12}>
+            <Card
+              bordered={false}
+              style={{ borderRadius: 18, boxShadow: '0 14px 45px rgba(0,0,0,0.06)' }}
+            >
+              <Space direction="vertical" style={{ width: '100%' }} size={12}>
+                <div>
+                  <Title heading={4} style={{ marginBottom: 4 }}>
+                    发布商品
+                  </Title>
+                  <Paragraph style={{ marginBottom: 0 }} type="secondary">
+                    请尽量填写详细信息，方便同学快速了解你的宝贝~
+                  </Paragraph>
+                </div>
+
+                <Form<FormValues>
+                  form={form}
+                  layout="vertical"
+                  initialValues={{
+                    campus: 'xihai',
+                    condition: 'nine',
+                    images: [],
+                  }}
+                  onSubmit={handleSubmit}
+                >
+>>>>>>> Show-website-page
                 {/* 标题 + 价格 */}
                 <Row gutter={12}>
                   <Col xs={24} sm={16}>
@@ -213,6 +255,7 @@ export default function Publish() {
                   </Text>
                 </Form.Item>
 
+<<<<<<< HEAD
                 {/* 按钮区 */}
                 <Form.Item>
                   <Space>
@@ -238,3 +281,67 @@ export default function Publish() {
     </div>
   );
 }
+=======
+                  {/* 按钮区 */}
+                  <Form.Item>
+                    <Space>
+                      <Button
+                        type="primary"
+                        icon={<IconUpload />}
+                        htmlType="submit"
+                        loading={submitting}
+                      >
+                        发布商品
+                      </Button>
+                      <Button onClick={handleReset}>清空表单</Button>
+                      <Button type="text" onClick={() => navigate(-1)}>
+                        返回上一页
+                      </Button>
+                    </Space>
+                  </Form.Item>
+                </Form>
+              </Space>
+            </Card>
+          </Col>
+        </Row>
+      </div>
+
+      <nav className={styles.bottomNav}>
+        <button
+          type="button"
+          className={styles.navItem}
+          onClick={() => navigate('/')}
+        >
+          <IconHome />
+          <span>主页</span>
+        </button>
+        <button
+          type="button"
+          className={`${styles.navItem} ${styles.navItemActive}`}
+          onClick={() => navigate('/publish')}
+        >
+          <IconUpload />
+          <span>上传商品</span>
+        </button>
+        <button
+          type="button"
+          className={styles.navItem}
+          onClick={() => navigate('/notifications')}
+        >
+          <IconMessage />
+          <span>消息</span>
+        </button>
+        <button
+          type="button"
+          className={styles.navItem}
+          onClick={() => navigate('/profile')}
+        >
+          <IconUser />
+          <span>个人</span>
+        </button>
+      </nav>
+    </div>
+  );
+}
+>>>>>>> Stashed changes
+>>>>>>> Show-website-page
