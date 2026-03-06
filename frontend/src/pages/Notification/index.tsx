@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { Avatar, Badge, Button, Input, Space, Typography } from '@arco-design/web-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Avatar, Badge, Button, Input, Modal, Space, Typography } from '@arco-design/web-react';
 import {
   IconHome,
   IconUpload,
@@ -8,108 +8,59 @@ import {
   IconSearch,
   IconPlus,
   IconSend,
+  IconImage,
 } from '@arco-design/web-react/icon';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useMessageStore, useTotalUnreadCount } from '@/store/message';
 import styles from './index.module.css';
 
 const { Text, Title } = Typography;
 
-type Conversation = {
-  id: string;
-  name: string;
-  preview: string;
-  time: string;
-  unread: number;
-  online: boolean;
-  sellerId: number;
-  lastSeenText?: string;
-};
-
-type Msg = {
-  id: string;
-  fromMe: boolean;
-  content: string;
-  time: string;
-};
-
-const MOCK_CONVERSATIONS: Conversation[] = [
-  { id: 'u_1', name: '海大数院同学', preview: '教材还在，今晚可以面交', time: '20:14', unread: 2, online: true, sellerId: 1 },
-  { id: 'u_2', name: '鱼山校区卖家', preview: '可以刀一点点', time: '19:32', unread: 0, online: true, sellerId: 2 },
-  { id: 'u_3', name: '崂山小王', preview: '谢谢，已确认收货', time: '昨天', unread: 0, online: false, sellerId: 3, lastSeenText: '5分钟前在线' },
-  { id: 'u_4', name: '系统通知', preview: '你的商品有新的收藏', time: '周一', unread: 1, online: false, sellerId: 1, lastSeenText: '2小时前在线' },
-];
-
-const MOCK_MESSAGES: Record<string, Msg[]> = {
-  u_1: [
-    { id: 'm1', fromMe: false, content: '你好，线代教材还在吗？', time: '18:54' },
-    { id: 'm2', fromMe: true, content: '在的，9成新，支持西海岸校区面交。', time: '18:55' },
-    { id: 'm3', fromMe: false, content: '可以，今晚图书馆门口见？', time: '18:57' },
-  ],
-  u_2: [
-    { id: 'm1', fromMe: false, content: '台灯还在售吗？', time: '16:10' },
-    { id: 'm2', fromMe: true, content: '在售的，35 可以小刀。', time: '16:13' },
-  ],
-  u_3: [
-    { id: 'm1', fromMe: true, content: '收到没问题的话帮忙给个评价哈～', time: '昨天 20:13' },
-    { id: 'm2', fromMe: false, content: '收到啦，感谢！', time: '昨天 20:15' },
-  ],
-  u_4: [{ id: 'm1', fromMe: false, content: '你的商品《线代教材》新增 1 次收藏。', time: '周一 09:20' }],
-};
-
 export default function Notification() {
   const navigate = useNavigate();
   const location = useLocation();
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const conversations = useMessageStore((s) => s.conversations);
+  const messagesByConversation = useMessageStore((s) => s.messagesByConversation);
+  const getOrCreateConversation = useMessageStore((s) => s.getOrCreateConversation);
+  const setActiveConversationRead = useMessageStore((s) => s.setActiveConversationRead);
+  const sendTextMessage = useMessageStore((s) => s.sendTextMessage);
+  const sendImageMessage = useMessageStore((s) => s.sendImageMessage);
+  const unreadTotal = useTotalUnreadCount();
   const incoming = (location.state as { peerName?: string; peerId?: number } | null) ?? null;
   const peerName = incoming?.peerName;
   const peerId = incoming?.peerId;
-
-  const mergedConversations = useMemo(() => {
-    if (!peerName && !peerId) return MOCK_CONVERSATIONS;
-    const exists = MOCK_CONVERSATIONS.some((c) => c.sellerId === peerId || c.name === peerName);
-    if (exists) return MOCK_CONVERSATIONS;
-    const nextId = peerId ?? Date.now();
-    return [{
-      id: `temp_peer_${nextId}`,
-      name: peerName || '新商家',
-      preview: '开始新的会话',
-      time: '刚刚',
-      unread: 0,
-      online: true,
-      sellerId: nextId,
-    }, ...MOCK_CONVERSATIONS];
-  }, [peerId, peerName]);
-
-  const [activeId, setActiveId] = useState<string>(
-    mergedConversations.find((c) => c.sellerId === peerId || c.name === peerName)?.id ?? mergedConversations[0].id,
-  );
+  const [activeId, setActiveId] = useState<string>(conversations[0]?.id ?? '');
   const [draft, setDraft] = useState('');
-  const [messages, setMessages] = useState<Record<string, Msg[]>>({
-    ...MOCK_MESSAGES,
-    ...(peerId || peerName
-      ? {
-          [mergedConversations.find((c) => c.sellerId === peerId || c.name === peerName)?.id || 'temp_peer']: [
-            { id: 't1', fromMe: false, content: '你好呀～', time: '刚刚' },
-          ],
-        }
-      : {}),
-  });
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const activeConversation = useMemo(
+    () => conversations.find((c) => c.id === activeId) ?? conversations[0],
+    [activeId, conversations],
+  );
+  const activeMessages = activeConversation ? messagesByConversation[activeConversation.id] || [] : [];
 
-  const activeConversation = mergedConversations.find((c) => c.id === activeId) ?? mergedConversations[0];
-  const activeMessages = messages[activeConversation.id] || [];
+  useEffect(() => {
+    if (!peerId) return;
+    const id = getOrCreateConversation(peerId, peerName || '新商家');
+    setActiveId(id);
+  }, [getOrCreateConversation, peerId, peerName]);
+
+  useEffect(() => {
+    if (!activeConversation || activeConversation.unread <= 0) return;
+    setActiveConversationRead(activeConversation.id);
+  }, [activeConversation, setActiveConversationRead]);
 
   const sendMessage = () => {
     const text = draft.trim();
-    if (!text) return;
-    const now = new Date();
-    const time = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-    setMessages((prev) => ({
-      ...prev,
-      [activeConversation.id]: [
-        ...(prev[activeConversation.id] || []),
-        { id: `m_${Date.now()}`, fromMe: true, content: text, time },
-      ],
-    }));
+    if (!text || !activeConversation) return;
+    sendTextMessage(activeConversation.id, text, true);
     setDraft('');
+  };
+
+  const sendPhoto = (file?: File) => {
+    if (!file || !activeConversation) return;
+    const url = URL.createObjectURL(file);
+    sendImageMessage(activeConversation.id, url, true);
   };
 
   return (
@@ -122,7 +73,7 @@ export default function Notification() {
           </div>
 
           <div className={styles.conversationList}>
-            {mergedConversations.map((c) => (
+            {conversations.map((c) => (
               <button
                 key={c.id}
                 type="button"
@@ -168,15 +119,15 @@ export default function Notification() {
         <section className={styles.chatArea}>
           <header className={styles.chatHeader}>
             <Title heading={6} style={{ margin: 0 }}>
-              {activeConversation.name}
+              {activeConversation?.name || '消息'}
             </Title>
             <Space size={8}>
-              {activeConversation.online && <span className={styles.onlineDot} />}
+              {activeConversation?.online && <span className={styles.onlineDot} />}
               <Text type="secondary">
-                {activeConversation.online ? '在线' : activeConversation.lastSeenText || '离线'}
+                {activeConversation?.online ? '在线' : activeConversation?.lastSeenText || '离线'}
               </Text>
               <Avatar size={26} className={styles.headerAvatar}>
-                {activeConversation.name.slice(0, 1)}
+                {activeConversation?.name?.slice(0, 1) || '消'}
               </Avatar>
             </Space>
           </header>
@@ -192,16 +143,25 @@ export default function Notification() {
                       size={30}
                       className={styles.msgAvatar}
                       onClick={() =>
-                        navigate(`/seller/${activeConversation.sellerId}`, {
+                        navigate(`/seller/${activeConversation?.sellerId}`, {
                           state: { fromMessages: true },
                         })
                       }
                     >
-                      {activeConversation.name.slice(0, 1)}
+                      {activeConversation?.name?.slice(0, 1) || '?'}
                     </Avatar>
                   )}
                   <div className={styles.msgBubble}>
-                    <div>{m.content}</div>
+                    {m.type === 'image' ? (
+                      <img
+                        src={m.content}
+                        alt="发送图片"
+                        className={styles.msgImage}
+                        onClick={() => setPreviewImage(m.content)}
+                      />
+                    ) : (
+                      <div>{m.content}</div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -216,6 +176,20 @@ export default function Notification() {
               placeholder="输入消息..."
             />
             <div className={styles.sendRow}>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className={styles.fileInput}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  sendPhoto(file);
+                  e.currentTarget.value = '';
+                }}
+              />
+              <Button type="outline" icon={<IconImage />} onClick={() => fileInputRef.current?.click()}>
+                发送图片
+              </Button>
               <Button type="primary" icon={<IconSend />} onClick={sendMessage}>
                 发送
               </Button>
@@ -234,7 +208,9 @@ export default function Notification() {
           <span>上传商品</span>
         </button>
         <button type="button" className={`${styles.navItem} ${styles.navItemActive}`} onClick={() => navigate('/notifications')}>
-          <IconMessage />
+          <Badge count={unreadTotal} offset={[8, 2]}>
+            <IconMessage />
+          </Badge>
           <span>消息</span>
         </button>
         <button type="button" className={styles.navItem} onClick={() => navigate('/profile')}>
@@ -242,6 +218,18 @@ export default function Notification() {
           <span>个人</span>
         </button>
       </nav>
+
+      <Modal
+        title="图片预览"
+        visible={Boolean(previewImage)}
+        footer={null}
+        onCancel={() => setPreviewImage(null)}
+        style={{ width: 720, maxWidth: '92vw' }}
+      >
+        {previewImage && (
+          <img src={previewImage} alt="预览图" className={styles.previewImage} />
+        )}
+      </Modal>
     </div>
   );
 }

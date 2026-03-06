@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import {
   Button,
+  Badge,
   Card,
   Form,
   Grid,
@@ -19,6 +20,7 @@ import {
   IconUser,
 } from '@arco-design/web-react/icon';
 import { useNavigate } from 'react-router-dom';
+import { useTotalUnreadCount } from '@/store/message';
 import styles from './Publish.module.css';
 
 const { Title, Paragraph, Text } = Typography;
@@ -39,6 +41,7 @@ type FormValues = {
 
 export default function Publish() {
   const navigate = useNavigate();
+  const unreadTotal = useTotalUnreadCount();
   const [submitting, setSubmitting] = useState(false);
   const [form] = Form.useForm<FormValues>();
 
@@ -225,7 +228,9 @@ export default function Publish() {
           <span>上传商品</span>
         </button>
         <button type="button" className={styles.navItem} onClick={() => navigate('/notifications')}>
-          <IconMessage />
+          <Badge count={unreadTotal} offset={[8, 2]}>
+            <IconMessage />
+          </Badge>
           <span>消息</span>
         </button>
         <button type="button" className={styles.navItem} onClick={() => navigate('/profile')}>

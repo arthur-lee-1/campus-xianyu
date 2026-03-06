@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import {
   Button,
+  Badge,
   Card,
   Grid,
   Input,
@@ -17,6 +18,7 @@ import {
 } from '@arco-design/web-react/icon';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/auth';
+import { useTotalUnreadCount } from '@/store/message';
 import styles from './index.module.css';
 
 const { Title, Paragraph, Text } = Typography;
@@ -101,6 +103,7 @@ const MOCK_PRODUCTS: Product[] = [
 export default function Home() {
   const navigate = useNavigate();
   const logout = useAuthStore((s) => s.logout);
+  const unreadTotal = useTotalUnreadCount();
 
   const handleLogout = () => {
     // 清空本地登录态，然后回到登录页
@@ -217,7 +220,9 @@ export default function Home() {
           className={styles.navItem}
           onClick={() => navigate('/notifications')}
         >
-          <IconMessage />
+          <Badge count={unreadTotal} offset={[8, 2]}>
+            <IconMessage />
+          </Badge>
           <span>消息</span>
         </button>
         <button

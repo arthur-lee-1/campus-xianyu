@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   Avatar,
+  Badge,
   Button,
   Card,
   Divider,
@@ -18,6 +19,7 @@ import {
   IconMessage,
 } from '@arco-design/web-react/icon';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useTotalUnreadCount } from '@/store/message';
 import { useSocialStore } from '@/store/social';
 import styles from './Profile.module.css';
 
@@ -39,6 +41,7 @@ const MOCK_USER = {
 export default function Profile() {
   const navigate = useNavigate();
   const location = useLocation();
+  const unreadTotal = useTotalUnreadCount();
   const following = useSocialStore((s) => s.following);
   const [activeTab, setActiveTab] = useState<TabKey>('products');
 
@@ -287,7 +290,9 @@ export default function Profile() {
           <span>上传商品</span>
         </button>
         <button type="button" className={styles.navItem} onClick={() => navigate('/notifications')}>
-          <IconMessage />
+          <Badge count={unreadTotal} offset={[8, 2]}>
+            <IconMessage />
+          </Badge>
           <span>消息</span>
         </button>
         <button

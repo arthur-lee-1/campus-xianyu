@@ -13,6 +13,7 @@ import {
 } from '@arco-design/web-react';
 import { IconHeart, IconMessage, IconStar, IconUser } from '@arco-design/web-react/icon';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useMessageStore } from '@/store/message';
 import { useSocialStore } from '@/store/social';
 import styles from './Detail.module.css';
 
@@ -133,6 +134,8 @@ export default function ProductDetail() {
   const navigate = useNavigate();
   const location = useLocation();
   const { isFollowingSeller, toggleFollowSeller, sellerFollowers } = useSocialStore();
+  const getOrCreateConversation = useMessageStore((s) => s.getOrCreateConversation);
+  const sendTextMessage = useMessageStore((s) => s.sendTextMessage);
 
   const product = useMemo(() => {
     const pid = Number(id);
@@ -144,8 +147,11 @@ export default function ProductDetail() {
   const [comments, setComments] = useState<CommentItem[]>(MOCK_COMMENTS);
   const [replyingId, setReplyingId] = useState<string | null>(null);
   const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
+  const [commentDraft, setCommentDraft] = useState('');
   const images = product.images.length > 0 ? product.images : [''];
   const total = images.length;
+  const currentUserId = 0;
+  const isSelfSeller = currentUserId === product.seller.id;
 
   const nowText = () => {
     const d = new Date();
@@ -189,6 +195,34 @@ export default function ProductDetail() {
     );
     setReplyDrafts((prev) => ({ ...prev, [commentId]: '' }));
     setReplyingId(null);
+  };
+
+  const submitComment = () => {
+    const text = commentDraft.trim();
+    if (!text) return;
+    setComments((prev) => [
+      {
+        id: `c_${Date.now()}`,
+        userId: 0,
+        username: '我',
+        content: text,
+        time: nowText(),
+        likes: 0,
+        likedByMe: false,
+        replies: [],
+      },
+      ...prev,
+    ]);
+    setCommentDraft('');
+  };
+
+  const handlePai = () => {
+    if (isSelfSeller) return;
+    const cid = getOrCreateConversation(product.seller.id, product.seller.nickname);
+    sendTextMessage(cid, `我拍了你的《${product.title}》商品`, true);
+    navigate('/notifications', {
+      state: { peerId: product.seller.id, peerName: product.seller.nickname },
+    });
   };
 
   const handleBack = () => {
@@ -240,7 +274,13 @@ export default function ProductDetail() {
                     <Avatar
                       size={36}
                       className={styles.commentAvatar}
-                      onClick={() => navigate(`/seller/${item.userId}`)}
+                      onClick={() => {
+                        if (item.userId === 0) {
+                          navigate('/profile');
+                          return;
+                        }
+                        navigate(`/seller/${item.userId}`);
+                      }}
                     >
                       {item.username.slice(0, 1)}
                     </Avatar>
@@ -278,6 +318,10 @@ export default function ProductDetail() {
                                 size={24}
                                 className={styles.replyAvatar}
                                 onClick={() => {
+                                  if (reply.userId === 0) {
+                                    navigate('/profile');
+                                    return;
+                                  }
                                   if (reply.userId > 0) navigate(`/seller/${reply.userId}`);
                                 }}
                               >
@@ -316,6 +360,19 @@ export default function ProductDetail() {
                     </div>
                   </div>
                 ))}
+              </div>
+              <div className={styles.commentComposer}>
+                <Input.TextArea
+                  placeholder="写下你的评论..."
+                  autoSize={{ minRows: 2, maxRows: 4 }}
+                  value={commentDraft}
+                  onChange={setCommentDraft}
+                />
+                <div className={styles.commentComposerActions}>
+                  <Button type="primary" onClick={submitComment}>
+                    发表评论
+                  </Button>
+                </div>
               </div>
             </div>
           </Col>
@@ -412,6 +469,11 @@ export default function ProductDetail() {
                 >
                   {collected ? '已收藏' : '收藏'}（{product.favorites + (collected ? 1 : 0)}）
                 </Button>
+                {!isSelfSeller && (
+                  <Button type="outline" className={styles.paiButton} onClick={handlePai}>
+                    拍
+                  </Button>
+                )}
                 <Button
                   type="primary"
                   icon={<IconMessage />}

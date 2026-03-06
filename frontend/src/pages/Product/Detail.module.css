@@ -92,12 +92,17 @@
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.82);
   border: 1px solid rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  max-height: 520px;
 }
 
 .commentList {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  overflow: auto;
+  padding-right: 2px;
 }
 
 .commentItem {
@@ -203,6 +208,21 @@
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 8px;
+}
+
+.commentComposer {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  background: rgba(255, 255, 255, 0.9);
+  position: sticky;
+  bottom: 0;
+}
+
+.commentComposerActions {
+  margin-top: 8px;
+  display: flex;
+  justify-content: flex-end;
 }
 
 .titleBlock {
@@ -368,6 +388,14 @@
 .actionButtons {
   width: 100%;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.paiButton {
+  min-width: 64px;
+  border-color: #ff7a45;
+  color: #ff7a45;
 }
 
 .extraInfo {
