@@ -1,28 +1,51 @@
+import { AxiosError } from 'axios';
 import { http } from '@/api/http';
+import type { AuthUser } from '@/store/auth';
 
-/**
- * Auth API（示例）
- *
- * 由于后端接口路径在当前仓库里不一定已最终定稿，
- * 这里先提供“清晰的调用点 + 明确的 TODO”，方便你们前后端联调时快速替换。
- */
+type ApiResp<T> = {
+  code: number;
+  message: string;
+  data: T;
+};
+
+type LoginData = {
+  access: string;
+  refresh: string;
+  is_new: boolean;
+  user: AuthUser;
+};
+
+export function parseApiError(err: unknown, fallback = '请求失败') {
+  const e = err as AxiosError<{ message?: string }>;
+  return e.response?.data?.message || fallback;
+}
+
+function unwrap<T>(payload: ApiResp<T>): T {
+  return payload.data;
+}
 
 export async function sendLoginCode(phone: string) {
-  // TODO: 替换为真实接口
-  // return http.post('/api/auth/sms/send/', { phone });
-  await sleep(600);
-  return { ok: true };
+  const resp = await http.post<ApiResp<null>>('/api/auth/sms/', { phone });
+  return unwrap(resp.data);
 }
 
 export async function loginWithPhoneCode(phone: string, code: string) {
-  // TODO: 替换为真实接口，返回 access token
-  // const { data } = await http.post('/api/auth/sms/login/', { phone, code });
-  // return data as { access: string };
-  await sleep(800);
-  return { access: `mock_access_token_${phone}_${code}` };
+  const resp = await http.post<ApiResp<LoginData>>('/api/auth/login/phone/', { phone, code });
+  return unwrap(resp.data);
 }
 
-function sleep(ms: number) {
-  return new Promise((r) => setTimeout(r, ms));
+export async function loginWithSocial(params: {
+  platform: 'wechat' | 'qq';
+  openid: string;
+  union_id?: string;
+  phone?: string;
+  code?: string;
+}) {
+  const resp = await http.post<ApiResp<LoginData>>('/api/auth/login/social/', params);
+  return unwrap(resp.data);
 }
 
+export async function logout(refresh: string) {
+  const resp = await http.post<ApiResp<null>>('/api/auth/logout/', { refresh });
+  return unwrap(resp.data);
+}
