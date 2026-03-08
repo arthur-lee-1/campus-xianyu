@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Avatar,
   Button,
@@ -7,6 +7,7 @@ import {
   Divider,
   Grid,
   Input,
+  Message,
   Space,
   Tag,
   Typography,
@@ -60,6 +61,32 @@ type CommentItem = {
 };
 
 const MOCK_PRODUCTS: Product[] = [
+  {
+    id: 11,
+    title: '高数教材上册',
+    price: 25,
+    campus: 'laoshan',
+    category: '教材 / 书籍',
+    condition: '9成新',
+    description: '自用一学期，书页完整无缺页，适合新生使用。',
+    images: ['', '', ''],
+    seller: { id: 0, nickname: '我', rating: 4.8, ratingCount: 23 },
+    favorites: 2,
+    status: 'on_sale',
+  },
+  {
+    id: 12,
+    title: '宿舍收纳架',
+    price: 30,
+    campus: 'laoshan',
+    category: '宿舍家具',
+    condition: '8成新',
+    description: '稳固耐用，带滚轮，崂山校区自提。',
+    images: ['', ''],
+    seller: { id: 0, nickname: '我', rating: 4.8, ratingCount: 23 },
+    favorites: 4,
+    status: 'on_sale',
+  },
   {
     id: 1,
     title: '线代教材（含课堂笔记）',
@@ -136,6 +163,7 @@ export default function ProductDetail() {
   const { isFollowingSeller, toggleFollowSeller, sellerFollowers } = useSocialStore();
   const getOrCreateConversation = useMessageStore((s) => s.getOrCreateConversation);
   const sendTextMessage = useMessageStore((s) => s.sendTextMessage);
+  const imageInputRef = useRef<HTMLInputElement | null>(null);
 
   const product = useMemo(() => {
     const pid = Number(id);
@@ -148,10 +176,18 @@ export default function ProductDetail() {
   const [replyingId, setReplyingId] = useState<string | null>(null);
   const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
   const [commentDraft, setCommentDraft] = useState('');
-  const images = product.images.length > 0 ? product.images : [''];
+  const [editableProduct, setEditableProduct] = useState<Product>(product);
+  const images = editableProduct.images.length > 0 ? editableProduct.images : [''];
   const total = images.length;
   const currentUserId = 0;
-  const isSelfSeller = currentUserId === product.seller.id;
+  const isOwnerFromState = Boolean((location.state as { isOwner?: boolean } | null)?.isOwner);
+  const isSelfSeller = currentUserId === editableProduct.seller.id || isOwnerFromState;
+  const [isEditingMine, setIsEditingMine] = useState(false);
+
+  useEffect(() => {
+    setEditableProduct(product);
+    setIsEditingMine(false);
+  }, [product]);
 
   const nowText = () => {
     const d = new Date();
@@ -225,6 +261,27 @@ export default function ProductDetail() {
     });
   };
 
+  const handleSaveMine = () => {
+    setIsEditingMine(false);
+    Message.success('商品信息已更新（前端演示）');
+  };
+
+  const handleToggleShelf = () => {
+    setEditableProduct((prev) => ({
+      ...prev,
+      status: prev.status === 'off' ? 'on_sale' : 'off',
+    }));
+  };
+
+  const handleChangeMainImage = (file?: File) => {
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    setEditableProduct((prev) => ({
+      ...prev,
+      images: [url, ...prev.images.slice(1)],
+    }));
+  };
+
   const handleBack = () => {
     const fromState = location.state as { fromProfile?: boolean; tab?: string } | null;
     if (fromState?.fromProfile && fromState?.tab === 'favorites') {
@@ -252,18 +309,46 @@ export default function ProductDetail() {
                       className={styles.slideImage}
                       style={src ? { backgroundImage: `url(${src})` } : undefined}
                       aria-label={`商品图片 ${idx + 1}`}
+                      onClick={() => {
+                        if (isSelfSeller && isEditingMine && idx === 0) {
+                          imageInputRef.current?.click();
+                        }
+                      }}
                     />
                   </div>
                 ))}
               </Carousel>
+              {isSelfSeller && isEditingMine && (
+                <input
+                  ref={imageInputRef}
+                  type="file"
+                  accept="image/*"
+                  className={styles.hiddenFileInput}
+                  onChange={(e) => {
+                    handleChangeMainImage(e.target.files?.[0]);
+                    e.currentTarget.value = '';
+                  }}
+                />
+              )}
               <div className={styles.pager}>
                 {activeIndex + 1}/{total}
               </div>
+              {isSelfSeller && isEditingMine && (
+                <div className={styles.editImageHint}>点击首图可替换商品图片</div>
+              )}
             </div>
 
             <div className={styles.detailBlock}>
               <div className={styles.blockTitle}>商品描述</div>
-              <Paragraph className={styles.desc}>{product.description}</Paragraph>
+              {isSelfSeller && isEditingMine ? (
+                <Input.TextArea
+                  value={editableProduct.description}
+                  autoSize={{ minRows: 3, maxRows: 6 }}
+                  onChange={(v) => setEditableProduct((prev) => ({ ...prev, description: v }))}
+                />
+              ) : (
+                <Paragraph className={styles.desc}>{editableProduct.description}</Paragraph>
+              )}
             </div>
 
             <div className={styles.commentBlock}>
@@ -380,29 +465,78 @@ export default function ProductDetail() {
           <Col xs={24} md={10} className={styles.right}>
             <div className={styles.priceLine}>
               <span className={styles.priceSymbol}>￥</span>
-              <span className={styles.priceValue}>{product.price}</span>
+              {isSelfSeller && isEditingMine ? (
+                <Input
+                  value={String(editableProduct.price)}
+                  className={styles.editInputInline}
+                  onChange={(v) =>
+                    setEditableProduct((prev) => ({
+                      ...prev,
+                      price: Number(v) || 0,
+                    }))
+                  }
+                />
+              ) : (
+                <span className={styles.priceValue}>{editableProduct.price}</span>
+              )}
               <span className={styles.priceHint}>（具体以双方沟通为准）</span>
             </div>
 
             <div className={styles.titleLine}>
-              <Title heading={4} className={styles.title}>
-                {product.title}
-              </Title>
-              {statusTag(product.status)}
+              {isSelfSeller && isEditingMine ? (
+                <Input
+                  value={editableProduct.title}
+                  onChange={(v) => setEditableProduct((prev) => ({ ...prev, title: v }))}
+                />
+              ) : (
+                <Title heading={4} className={styles.title}>
+                  {editableProduct.title}
+                </Title>
+              )}
+              {statusTag(editableProduct.status)}
             </div>
 
             <div className={styles.metaCard}>
               <div className={styles.metaRow}>
                 <span className={styles.metaLabel}>所在校区</span>
-                <span className={styles.metaValue}>{campusLabel(product.campus)}</span>
+                {isSelfSeller && isEditingMine ? (
+                  <Input
+                    value={campusLabel(editableProduct.campus)}
+                    className={styles.editSmallInput}
+                    onChange={(v) =>
+                      setEditableProduct((prev) => ({
+                        ...prev,
+                        campus: v.includes('崂山') ? 'laoshan' : v.includes('鱼山') ? 'yushan' : 'xihai',
+                      }))
+                    }
+                  />
+                ) : (
+                  <span className={styles.metaValue}>{campusLabel(editableProduct.campus)}</span>
+                )}
               </div>
               <div className={styles.metaRow}>
                 <span className={styles.metaLabel}>分类</span>
-                <span className={styles.metaValue}>{product.category}</span>
+                {isSelfSeller && isEditingMine ? (
+                  <Input
+                    value={editableProduct.category}
+                    className={styles.editSmallInput}
+                    onChange={(v) => setEditableProduct((prev) => ({ ...prev, category: v }))}
+                  />
+                ) : (
+                  <span className={styles.metaValue}>{editableProduct.category}</span>
+                )}
               </div>
               <div className={styles.metaRow}>
                 <span className={styles.metaLabel}>新旧程度</span>
-                <span className={styles.metaValue}>{product.condition}</span>
+                {isSelfSeller && isEditingMine ? (
+                  <Input
+                    value={editableProduct.condition}
+                    className={styles.editSmallInput}
+                    onChange={(v) => setEditableProduct((prev) => ({ ...prev, condition: v }))}
+                  />
+                ) : (
+                  <span className={styles.metaValue}>{editableProduct.condition}</span>
+                )}
               </div>
             </div>
 
@@ -422,9 +556,9 @@ export default function ProductDetail() {
                     <button
                       type="button"
                       className={styles.sellerNameButton}
-                      onClick={() => navigate(`/seller/${product.seller.id}`)}
+                      onClick={() => navigate(`/seller/${editableProduct.seller.id}`)}
                     >
-                      {product.seller.nickname}
+                      {editableProduct.seller.nickname}
                     </button>
                     <div className={styles.sellerRating}>
                       <div className={styles.starBar}>
@@ -442,9 +576,9 @@ export default function ProductDetail() {
                           ))}
                         </div>
                       </div>
-                      <Text className={styles.sellerScore}>{product.seller.rating.toFixed(1)}</Text>
+                      <Text className={styles.sellerScore}>{editableProduct.seller.rating.toFixed(1)}</Text>
                       <Text type="secondary" className={styles.sellerCount}>
-                        来自 {product.seller.ratingCount} 条评价
+                        来自 {editableProduct.seller.ratingCount} 条评价
                       </Text>
                       <Text type="secondary" className={styles.sellerCount}>
                         · 粉丝 {sellerFollowers}
@@ -452,39 +586,58 @@ export default function ProductDetail() {
                     </div>
                   </div>
                 </div>
-                <Button
-                  size="small"
-                  type={isFollowingSeller ? 'outline' : 'primary'}
-                  onClick={toggleFollowSeller}
-                >
-                  {isFollowingSeller ? '已关注' : '关注'}
-                </Button>
+                {!isSelfSeller && (
+                  <Button
+                    size="small"
+                    type={isFollowingSeller ? 'outline' : 'primary'}
+                    onClick={toggleFollowSeller}
+                  >
+                    {isFollowingSeller ? '已关注' : '关注'}
+                  </Button>
+                )}
               </div>
 
               <Space className={styles.actionButtons}>
-                <Button
-                  type="outline"
-                  icon={<IconStar />}
-                  onClick={() => setCollected((v) => !v)}
-                >
-                  {collected ? '已收藏' : '收藏'}（{product.favorites + (collected ? 1 : 0)}）
-                </Button>
-                {!isSelfSeller && (
-                  <Button type="outline" className={styles.paiButton} onClick={handlePai}>
-                    拍
-                  </Button>
+                {isSelfSeller ? (
+                  <>
+                    <Button type="outline" status="danger" onClick={handleToggleShelf}>
+                      {editableProduct.status === 'off' ? '重新上架' : '下架商品'}
+                    </Button>
+                    <Button
+                      type="primary"
+                      icon={<IconStar />}
+                      onClick={() => (isEditingMine ? handleSaveMine() : setIsEditingMine(true))}
+                    >
+                      {isEditingMine ? '保存修改' : '编辑商品'}
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button
+                      type="outline"
+                      icon={<IconStar />}
+                      onClick={() => setCollected((v) => !v)}
+                    >
+                      {collected ? '已收藏' : '收藏'}（{editableProduct.favorites + (collected ? 1 : 0)}）
+                    </Button>
+                    {!isSelfSeller && (
+                      <Button type="outline" className={styles.paiButton} onClick={handlePai}>
+                        拍
+                      </Button>
+                    )}
+                    <Button
+                      type="primary"
+                      icon={<IconMessage />}
+                      onClick={() =>
+                        navigate('/notifications', {
+                          state: { peerId: editableProduct.seller.id, peerName: editableProduct.seller.nickname },
+                        })
+                      }
+                    >
+                      联系卖家
+                    </Button>
+                  </>
                 )}
-                <Button
-                  type="primary"
-                  icon={<IconMessage />}
-                  onClick={() =>
-                    navigate('/notifications', {
-                      state: { peerId: product.seller.id, peerName: product.seller.nickname },
-                    })
-                  }
-                >
-                  联系卖家
-                </Button>
               </Space>
             </div>
 

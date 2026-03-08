@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Avatar,
   Badge,
@@ -21,6 +21,7 @@ import {
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useTotalUnreadCount } from '@/store/message';
 import { useSocialStore } from '@/store/social';
+import { useUserProfileStore } from '@/store/userProfile';
 import styles from './Profile.module.css';
 
 const { Title, Paragraph, Text } = Typography;
@@ -29,8 +30,6 @@ type TabKey = 'products' | 'favorites' | 'following' | 'followers';
 
 const MOCK_USER = {
   nickname: 'A',
-  campus: '中国海洋大学 · 崂山校区',
-  bio: '个人签名',
   rating: 4.8,
   ratingCount: 23,
   followers: 56,
@@ -38,12 +37,36 @@ const MOCK_USER = {
   dealCount: 12,
 };
 
+const MOCK_MY_PRODUCTS: Array<{
+  id: number;
+  title: string;
+  price: number;
+  status: 'on_sale' | 'sold';
+}> = [
+  { id: 11, title: '高数教材上册', price: 25, status: 'on_sale' },
+  { id: 12, title: '宿舍收纳架', price: 30, status: 'on_sale' },
+  { id: 13, title: '二手台灯', price: 35, status: 'on_sale' },
+  { id: 14, title: '蓝牙耳机', price: 120, status: 'sold' },
+  { id: 15, title: '计算器', price: 45, status: 'sold' },
+];
+
 export default function Profile() {
   const navigate = useNavigate();
   const location = useLocation();
   const unreadTotal = useTotalUnreadCount();
   const following = useSocialStore((s) => s.following);
+  const nickname = useUserProfileStore((s) => s.nickname);
+  const bio = useUserProfileStore((s) => s.bio);
+  const avatarUrl = useUserProfileStore((s) => s.avatarUrl);
   const [activeTab, setActiveTab] = useState<TabKey>('products');
+  const orderedMyProducts = useMemo(
+    () =>
+      [...MOCK_MY_PRODUCTS].sort((a, b) => {
+        if (a.status === b.status) return a.id - b.id;
+        return a.status === 'on_sale' ? -1 : 1;
+      }),
+    [],
+  );
 
   useEffect(() => {
     const fromState = (location.state as { tab?: TabKey } | null)?.tab;
@@ -60,21 +83,20 @@ export default function Profile() {
         <div className={styles.top}>
           <div className={styles.avatarBlock}>
             <Avatar size={72} className={styles.avatar}>
-              <IconUser />
+              {avatarUrl ? <img src={avatarUrl} alt="头像" className={styles.avatarImage} /> : <IconUser />}
             </Avatar>
             <div>
               <Title heading={4} className={styles.nickname}>
-                {MOCK_USER.nickname}
+                {nickname}
               </Title>
-              <Text type="secondary">{MOCK_USER.campus}</Text>
             </div>
           </div>
-          <Button type="outline" icon={<IconEdit />} size="small">
-            编辑资料（占位）
+          <Button type="outline" icon={<IconEdit />} size="small" onClick={() => navigate('/settings')}>
+            编辑资料
           </Button>
         </div>
 
-        <Paragraph className={styles.bio}>{MOCK_USER.bio}</Paragraph>
+        <Paragraph className={styles.bio}>{bio}</Paragraph>
 
         <div className={styles.statsRow}>
           <div className={styles.statItem}>
@@ -154,23 +176,23 @@ export default function Profile() {
           {activeTab === 'products' && (
             <div>
               <div className={styles.sectionHeader}>
-                <Text className={styles.sectionTitle}>在售商品</Text>
-                <Button type="text" size="small" onClick={() => navigate('/my-products')}>
-                  查看全部
-                </Button>
+                <Text className={styles.sectionTitle}>我的商品</Text>
               </div>
               <div className={styles.productPreview}>
-                {[1, 2, 3].map((id) => (
+                {orderedMyProducts.map((item) => (
                   <Card
-                    key={id}
+                    key={item.id}
                     hoverable
                     className={styles.productCard}
-                    onClick={() => navigate('/my-products')}
+                    onClick={() => navigate(`/product/${item.id}`, { state: { isOwner: true } })}
                   >
                     <div className={styles.productThumb} />
                     <Space size={4} direction="vertical" style={{ width: '100%' }}>
-                      <Text className={styles.productTitle}>示例商品 {id}</Text>
-                      <Text className={styles.productPrice}>￥{20 + id * 5}</Text>
+                      <Text className={styles.productTitle}>{item.title}</Text>
+                      <Tag color={item.status === 'on_sale' ? 'green' : 'arcoblue'}>
+                        {item.status === 'on_sale' ? '在售' : '已售'}
+                      </Tag>
+                      <Text className={styles.productPrice}>￥{item.price}</Text>
                     </Space>
                   </Card>
                 ))}

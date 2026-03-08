@@ -55,6 +55,21 @@
   background-position: center;
 }
 
+.hiddenFileInput {
+  display: none;
+}
+
+.editImageHint {
+  position: absolute;
+  left: 12px;
+  bottom: 12px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  font-size: 12px;
+}
+
 .pager {
   position: absolute;
   right: 12px;
@@ -258,6 +273,10 @@
   line-height: 1;
 }
 
+.editInputInline {
+  width: 120px;
+}
+
 .priceHint {
   color: rgba(0, 0, 0, 0.45);
   font-size: 12px;
@@ -304,6 +323,10 @@
 .metaValue {
   font-weight: 700;
   color: rgba(0, 0, 0, 0.82);
+}
+
+.editSmallInput {
+  width: 130px;
 }
 
 .sellerCard {
