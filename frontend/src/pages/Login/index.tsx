@@ -19,7 +19,7 @@ import {
   IconStorage,
 } from '@arco-design/web-react/icon';
 import { useLoaderData, useNavigate } from 'react-router-dom';
-import { sendLoginCode, loginWithPhoneCode } from '@/api/auth';
+import { sendLoginCode, loginWithPhoneCode, parseApiError } from '@/api/auth';
 import { useAuthStore } from '@/store/auth';
 import styles from './index.module.css';
 
@@ -44,8 +44,7 @@ type LoginLoaderData = {
 export default function Login() {
   const navigate = useNavigate();
   const { redirectTo } = useLoaderData() as LoginLoaderData;
-  const setAccessToken = useAuthStore((s) => s.setAccessToken);
-
+  const setSession = useAuthStore((s) => s.setSession);
   const [activeTab, setActiveTab] = useState<'phone' | 'wechat' | 'qq'>('phone');
   const [submitting, setSubmitting] = useState(false);
   const [sending, setSending] = useState(false);
@@ -99,28 +98,30 @@ export default function Login() {
       setCountdown(60);
     } catch (e) {
       // 这里不要直接把 error 对象暴露给用户；后续可按后端错误结构做更细提示
-      Message.error('发送失败，请稍后重试');
+      Message.error(parseApiError(e, '发送失败，请稍后重试'));
     } finally {
       setSending(false);
     }
   };
 
   const onSubmitPhone = async (values: { phone: string; code: string }) => {
-    setSubmitting(true);
-    try {
-      const { access } = await loginWithPhoneCode(values.phone, values.code);
+  setSubmitting(true);
+  try {
+    const data = await loginWithPhoneCode(values.phone, values.code);
+    setSession({
+      access: data.access,
+      refresh: data.refresh,
+      user: data.user,
+    });
 
-      // ✅ 统一写入登录态：store + localStorage
-      setAccessToken(access);
-
-      Message.success('登录成功');
-      goAfterLogin();
-    } catch (e) {
-      Message.error('登录失败，请检查验证码');
-    } finally {
-      setSubmitting(false);
-    }
-  };
+    Message.success('登录成功');
+    goAfterLogin();
+  } catch (e) {
+    Message.error(parseApiError(e, '登录失败，请检查验证码'));
+  } finally {
+    setSubmitting(false);
+  }
+};
 
   const phoneTab = useMemo(
     () => (
