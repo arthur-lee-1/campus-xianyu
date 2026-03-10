@@ -34,8 +34,19 @@ class ProductListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         fields = [
-            "id", "title", "price", "original_price", "condition", "status",
-            "view_count", "like_count", "created_at", "category", "cover_image", "seller",
+            "id",
+            "title",
+            "price",
+            "original_price",
+            "condition",
+            "campus",
+            "status",
+            "view_count",
+            "like_count",
+            "created_at",
+            "category",
+            "cover_image",
+            "seller",
         ]
 
     def get_cover_image(self, obj):
@@ -59,7 +70,8 @@ class ProductListSerializer(serializers.ModelSerializer):
         return {
             "id": u.id,
             "name": getattr(u, "nickname", None) or getattr(u, "username", f"user_{u.id}"),
-            "avatar": avatar_url
+            "avatar": avatar_url,
+            "campus": getattr(u, "campus", None),
         }
 
 
@@ -75,15 +87,24 @@ class ProductWriteSerializer(serializers.ModelSerializer):
     image_files = serializers.ListField(
         child=serializers.ImageField(),
         write_only=True,
-        required=False
+        required=False,
     )
     replace_images = serializers.BooleanField(write_only=True, required=False, default=False)
 
     class Meta:
         model = Product
         fields = [
-            "id", "category", "title", "description", "price", "original_price",
-            "condition", "status", "image_files", "replace_images"
+            "id",
+            "category",
+            "campus",
+            "title",
+            "description",
+            "price",
+            "original_price",
+            "condition",
+            "status",
+            "image_files",
+            "replace_images",
         ]
         read_only_fields = ["id"]
 
