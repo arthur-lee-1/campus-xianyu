@@ -175,6 +175,8 @@ python manage.py runserver --settings=config.settings.development
 
 **前端**
 
+进入前端目录后，复制环境变量模板文件：
+
 ```bash
 cd frontend
 npm install
