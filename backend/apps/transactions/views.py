@@ -1,15 +1,22 @@
 from django.db.models import Q
-from rest_framework import viewsets, status
+from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 
-from utils.response import success, created, error
+from utils.response import success, created
+
 from .models import Transaction, Rating
 from .serializers import (
     TransactionCreateSerializer,
     TransactionSerializer,
     RatingCreateSerializer,
     RatingSerializer,
+)
+from .services import (
+    create_transaction,
+    confirm_transaction,
+    complete_transaction,
+    cancel_transaction,
 )
 
 
@@ -55,43 +62,35 @@ class TransactionViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        tx = serializer.save()
+
+        tx = create_transaction(
+            product_id=serializer.validated_data["product_id"],
+            buyer=request.user,
+            price=serializer.validated_data.get("price"),
+            remark=serializer.validated_data.get("remark", ""),
+        )
         return created(TransactionSerializer(tx).data, message="交易创建成功")
 
     @action(detail=True, methods=["post"])
     def confirm(self, request, pk=None):
         tx = self.get_object()
-        if request.user.id != tx.seller_id:
-            return error("仅卖家可确认交易", status_code=status.HTTP_403_FORBIDDEN)
-        if tx.status != Transaction.Status.PENDING:
-            return error("当前状态不可确认", status_code=status.HTTP_400_BAD_REQUEST)
-
-        tx.status = Transaction.Status.IN_PROGRESS
-        tx.save(update_fields=["status", "updated_at"])
+        tx = confirm_transaction(tx=tx, operator=request.user)
         return success(TransactionSerializer(tx).data, message="已确认，交易进行中")
 
     @action(detail=True, methods=["post"])
     def complete(self, request, pk=None):
         tx = self.get_object()
-        if request.user.id not in (tx.buyer_id, tx.seller_id):
-            return error("无权操作该交易", status_code=status.HTTP_403_FORBIDDEN)
-        if not tx.can_complete():
-            return error("当前状态不可完成", status_code=status.HTTP_400_BAD_REQUEST)
-
-        tx.status = Transaction.Status.COMPLETED
-        tx.save(update_fields=["status", "updated_at"])
+        tx = complete_transaction(tx=tx, operator=request.user)
         return success(TransactionSerializer(tx).data, message="交易已完成")
 
     @action(detail=True, methods=["post"])
     def cancel(self, request, pk=None):
         tx = self.get_object()
-        if request.user.id not in (tx.buyer_id, tx.seller_id):
-            return error("无权操作该交易", status_code=status.HTTP_403_FORBIDDEN)
-        if not tx.can_cancel():
-            return error("当前状态不可取消", status_code=status.HTTP_400_BAD_REQUEST)
-
-        tx.status = Transaction.Status.CANCELLED
-        tx.save(update_fields=["status", "updated_at"])
+        tx = cancel_transaction(
+            tx=tx,
+            operator=request.user,
+            cancel_reason=request.data.get("cancel_reason", ""),
+        )
         return success(TransactionSerializer(tx).data, message="交易已取消")
 
     @action(detail=True, methods=["post"])

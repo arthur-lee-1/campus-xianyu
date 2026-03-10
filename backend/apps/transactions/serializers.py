@@ -1,65 +1,18 @@
-from decimal import Decimal
 from django.db import IntegrityError, transaction
 from rest_framework import serializers
 
-from apps.products.models import Product
 from .models import Transaction, Rating
 
 
-def resolve_product_seller(product):
-    for attr in ("seller", "user", "owner", "publisher"):
-        val = getattr(product, attr, None)
-        if val is not None:
-            return val
-    return None
-
-
-class TransactionCreateSerializer(serializers.ModelSerializer):
-    product_id = serializers.IntegerField(write_only=True)
+class TransactionCreateSerializer(serializers.Serializer):
+    product_id = serializers.IntegerField()
     price = serializers.DecimalField(max_digits=8, decimal_places=2, required=False)
+    remark = serializers.CharField(max_length=200, required=False, allow_blank=True)
 
-    class Meta:
-        model = Transaction
-        fields = ("id", "product_id", "price", "remark")
-        read_only_fields = ("id",)
-
-    def validate(self, attrs):
-        request = self.context["request"]
-        buyer = request.user
-
-        try:
-            product = Product.objects.get(pk=attrs["product_id"])
-        except Product.DoesNotExist:
-            raise serializers.ValidationError({"product_id": "商品不存在"})
-
-        seller = resolve_product_seller(product)
-        if seller is None:
-            raise serializers.ValidationError({"product_id": "无法识别商品卖家"})
-
-        if buyer.id == seller.id:
-            raise serializers.ValidationError("不能购买自己发布的商品")
-
-        exists_active = Transaction.objects.filter(
-            product=product,
-            status__in=[Transaction.Status.PENDING, Transaction.Status.IN_PROGRESS],
-        ).exists()
-        if exists_active:
-            raise serializers.ValidationError("该商品已有进行中的交易")
-
-        if "price" not in attrs or attrs.get("price") is None:
-            product_price = getattr(product, "price", None)
-            if product_price is None:
-                raise serializers.ValidationError({"price": "请提供成交价"})
-            attrs["price"] = Decimal(str(product_price))
-
-        attrs["product"] = product
-        attrs["seller"] = seller
-        attrs["buyer"] = buyer
-        return attrs
-
-    def create(self, validated_data):
-        validated_data.pop("product_id", None)
-        return Transaction.objects.create(**validated_data)
+    def validate_price(self, value):
+        if value <= 0:
+            raise serializers.ValidationError("成交价必须大于 0")
+        return value
 
 
 class TransactionSerializer(serializers.ModelSerializer):
@@ -77,6 +30,10 @@ class TransactionSerializer(serializers.ModelSerializer):
             "status",
             "price",
             "remark",
+            "confirmed_at",
+            "completed_at",
+            "cancelled_at",
+            "cancel_reason",
             "created_at",
             "updated_at",
         )
@@ -121,7 +78,6 @@ class RatingCreateSerializer(serializers.ModelSerializer):
         else:
             raise serializers.ValidationError("无权对该交易评分")
 
-        # 先做业务侧重复校验（避免大多数冲突）
         if Rating.objects.filter(transaction=tx, role=role).exists():
             raise serializers.ValidationError("该交易当前角色已评分")
 
@@ -132,8 +88,6 @@ class RatingCreateSerializer(serializers.ModelSerializer):
         return attrs
 
     def create(self, validated_data):
-        # 关键：用 atomic savepoint 包住，捕获 IntegrityError 后回滚到 savepoint，
-        # 避免把外层测试事务打坏（否则后续请求会 TransactionManagementError）
         try:
             with transaction.atomic():
                 return Rating.objects.create(**validated_data)

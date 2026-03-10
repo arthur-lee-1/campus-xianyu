@@ -1,11 +1,11 @@
-from django.utils import timezone
-from rest_framework import viewsets, mixins
+from rest_framework import mixins, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 
 from utils.response import success
 from .models import Notification
 from .serializers import NotificationSerializer
+from .service import mark_notification_read, mark_all_notifications_read
 
 
 class NotificationViewSet(
@@ -18,18 +18,28 @@ class NotificationViewSet(
     serializer_class = NotificationSerializer
 
     def get_queryset(self):
-        qs = Notification.objects.filter(recipient=self.request.user)
+        qs = (
+            Notification.objects
+            .filter(recipient=self.request.user)
+            .select_related("recipient", "sender")
+            .order_by("-created_at")
+        )
+
         is_read = self.request.query_params.get("is_read")
         category = self.request.query_params.get("category")
+
         if is_read in ("true", "false"):
             qs = qs.filter(is_read=(is_read == "true"))
+
         if category:
             qs = qs.filter(category=category)
-        return qs.order_by("-created_at")
+
+        return qs
 
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
         page = self.paginate_queryset(queryset)
+
         if page is not None:
             serializer = self.get_serializer(page, many=True)
             return success(
@@ -40,6 +50,7 @@ class NotificationViewSet(
                     "results": serializer.data,
                 }
             )
+
         serializer = self.get_serializer(queryset, many=True)
         return success(serializer.data)
 
@@ -55,21 +66,18 @@ class NotificationViewSet(
     @action(detail=True, methods=["post"], url_path="read")
     def mark_read(self, request, pk=None):
         obj = self.get_object()
-        if not obj.is_read:
-            obj.is_read = True
-            obj.read_at = timezone.now()
-            obj.save(update_fields=["is_read", "read_at"])
+        obj = mark_notification_read(notification=obj)
         return success(self.get_serializer(obj).data, message="已标记为已读")
 
     @action(detail=False, methods=["post"], url_path="mark_all_read")
     def mark_all_read(self, request):
-        now = timezone.now()
-        count = Notification.objects.filter(
-            recipient=request.user, is_read=False
-        ).update(is_read=True, read_at=now)
+        count = mark_all_notifications_read(recipient=request.user)
         return success({"updated": count}, message="全部已读")
 
     @action(detail=False, methods=["get"], url_path="unread_count")
     def unread_count(self, request):
-        count = Notification.objects.filter(recipient=request.user, is_read=False).count()
+        count = Notification.objects.filter(
+            recipient=request.user,
+            is_read=False,
+        ).count()
         return success({"unread_count": count})

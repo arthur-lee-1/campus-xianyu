@@ -11,9 +11,13 @@ class Notification(models.Model):
         TRANSACTION = "transaction", "交易"
         RATING = "rating", "评分"
         SECURITY = "security", "安全"
+        INTERACTION = "interaction", "互动"
 
     recipient = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name="notifications", verbose_name="接收者"
+        User,
+        on_delete=models.CASCADE,
+        related_name="notifications",
+        verbose_name="接收者",
     )
     sender = models.ForeignKey(
         User,
@@ -24,22 +28,33 @@ class Notification(models.Model):
         verbose_name="发送者",
     )
     category = models.CharField(
-        "分类", max_length=20, choices=Category.choices, default=Category.SYSTEM
+        "分类",
+        max_length=20,
+        choices=Category.choices,
+        default=Category.SYSTEM,
+        db_index=True,
     )
     title = models.CharField("标题", max_length=100)
     content = models.CharField("内容", max_length=500)
     extra = models.JSONField("扩展信息", default=dict, blank=True)
 
-    is_read = models.BooleanField("是否已读", default=False)
+    is_read = models.BooleanField("是否已读", default=False, db_index=True)
     read_at = models.DateTimeField("已读时间", null=True, blank=True)
 
-    created_at = models.DateTimeField("创建时间", auto_now_add=True)
+    created_at = models.DateTimeField("创建时间", auto_now_add=True, db_index=True)
 
     class Meta:
         db_table = "notifications"
         ordering = ["-created_at"]
         verbose_name = "通知"
         verbose_name_plural = "通知"
+        indexes = [
+            models.Index(fields=["recipient", "is_read", "-created_at"]),
+            models.Index(fields=["recipient", "category", "-created_at"]),
+        ]
+
+    def __str__(self):
+        return f"{self.title} -> {self.recipient_id}"
 
     def mark_read(self):
         if not self.is_read:

@@ -4,7 +4,7 @@ from .models import Notification
 
 class NotificationSerializer(serializers.ModelSerializer):
     recipient_id = serializers.IntegerField(source="recipient.id", read_only=True)
-    sender_id = serializers.IntegerField(source="sender.id", read_only=True)
+    sender_id = serializers.SerializerMethodField()
 
     class Meta:
         model = Notification
@@ -20,3 +20,6 @@ class NotificationSerializer(serializers.ModelSerializer):
             "read_at",
             "created_at",
         )
+
+    def get_sender_id(self, obj):
+        return obj.sender_id
