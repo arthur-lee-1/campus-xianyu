@@ -6,3 +6,4 @@
 - 02-auth-frontend-integration.md：前后端联调步骤
 - 03-auth-test-cases.md：联调测试用例
 - 04-auth-debug-playbook.md：常见问题排查手册
+- 05-auth-interface-description.md: 登录模块接口说明（含请求/响应格式、字段释义等）
