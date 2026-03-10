@@ -5,6 +5,7 @@ import {
   Card,
   Grid,
   Input,
+  Message,
   Space,
   Tabs,
   Typography,
@@ -17,6 +18,7 @@ import {
   IconSearch,
 } from '@arco-design/web-react/icon';
 import { useNavigate } from 'react-router-dom';
+import { logout as logoutApi, parseApiError } from '@/api/auth';
 import { useAuthStore } from '@/store/auth';
 import { useTotalUnreadCount } from '@/store/message';
 import styles from './index.module.css';
@@ -102,13 +104,21 @@ const MOCK_PRODUCTS: Product[] = [
  */
 export default function Home() {
   const navigate = useNavigate();
-  const logout = useAuthStore((s) => s.logout);
+  const clearSession = useAuthStore((s) => s.logout);
+  const refreshToken = useAuthStore((s) => s.refreshToken);
   const unreadTotal = useTotalUnreadCount();
 
-  const handleLogout = () => {
-    // 清空本地登录态，然后回到登录页
-    logout();
-    navigate('/login', { replace: true });
+  const handleLogout = async () => {
+    try {
+      if (refreshToken) {
+        await logoutApi(refreshToken);
+      }
+    } catch (e) {
+      Message.warning(parseApiError(e, '退出登录失败'));
+    } finally {
+      clearSession();
+      navigate('/login', { replace: true });
+    }
   };
 
   const [activeCampus, setActiveCampus] = useState<CampusKey | 'all'>('all');
