@@ -14,9 +14,15 @@ class Transaction(models.Model):
     product = models.ForeignKey(Product, on_delete=models.PROTECT, related_name="transactions")
     buyer = models.ForeignKey(User, on_delete=models.PROTECT, related_name="purchases")
     seller = models.ForeignKey(User, on_delete=models.PROTECT, related_name="sales")
+
     status = models.CharField("状态", max_length=15, choices=Status.choices, default=Status.PENDING)
     price = models.DecimalField("成交价", max_digits=8, decimal_places=2)
     remark = models.CharField("备注", max_length=200, blank=True)
+
+    confirmed_at = models.DateTimeField("确认时间", null=True, blank=True)
+    completed_at = models.DateTimeField("完成时间", null=True, blank=True)
+    cancelled_at = models.DateTimeField("取消时间", null=True, blank=True)
+    cancel_reason = models.CharField("取消原因", max_length=200, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -25,6 +31,9 @@ class Transaction(models.Model):
         db_table = "transactions"
         ordering = ["-created_at"]
         verbose_name = "交易"
+
+    def can_confirm(self):
+        return self.status == self.Status.PENDING
 
     def can_complete(self):
         return self.status == self.Status.IN_PROGRESS
@@ -52,5 +61,5 @@ class Rating(models.Model):
 
     class Meta:
         db_table = "ratings"
-        unique_together = ("transaction", "role")  # 每笔交易每个角色只能评一次
+        unique_together = ("transaction", "role")
         verbose_name = "评分"

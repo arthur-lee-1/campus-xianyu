@@ -3,7 +3,6 @@ from rest_framework import viewsets, filters
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAuthenticatedOrReadOnly
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework.views import APIView
 
 from utils.response import success
 from .models import Category, Product
@@ -30,7 +29,7 @@ class ProductViewSet(viewsets.ModelViewSet):
     )
     lookup_value_regex = r"\d+"
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    filterset_fields = ["category", "status", "condition", "seller"]
+    filterset_fields = ["category", "status", "condition", "seller", "campus"]
     search_fields = ["title", "description"]
     ordering_fields = ["created_at", "price", "view_count", "like_count"]
     ordering = ["-created_at"]
@@ -44,8 +43,16 @@ class ProductViewSet(viewsets.ModelViewSet):
             return [IsAuthenticated(), IsSellerOrReadOnly()]
         return [IsAuthenticatedOrReadOnly()]
 
+    def _apply_campus_filter(self, queryset):
+        campus = self.request.query_params.get("campus")
+        if campus:
+            queryset = queryset.filter(campus=campus)
+        return queryset
+
     def get_queryset(self):
         qs = super().get_queryset()
+        qs = self._apply_campus_filter(qs)
+
         # 默认仅展示在售商品；卖家本人访问详情时可看到自己的非在售商品
         if self.action == "list":
             return qs.filter(status=Product.Status.ON_SALE)
@@ -72,8 +79,15 @@ class ProductViewSet(viewsets.ModelViewSet):
     def finalize_response(self, request, response, *args, **kwargs):
         # 包装 DRF 默认 list/retrieve/create 等响应为统一格式
         if hasattr(response, "data") and isinstance(response.data, (dict, list)):
-            if not (isinstance(response.data, dict) and {"code", "message", "data"} <= set(response.data.keys())):
-                response.data = {"code": response.status_code, "message": "success", "data": response.data}
+            if not (
+                isinstance(response.data, dict)
+                and {"code", "message", "data"} <= set(response.data.keys())
+            ):
+                response.data = {
+                    "code": response.status_code,
+                    "message": "success",
+                    "data": response.data,
+                }
         return super().finalize_response(request, response, *args, **kwargs)
 
     @action(methods=["post"], detail=True, permission_classes=[AllowAny], url_path="view")
@@ -83,14 +97,24 @@ class ProductViewSet(viewsets.ModelViewSet):
         product.refresh_from_db(fields=["view_count"])
         return success({"id": product.id, "view_count": product.view_count})
 
-    @action(methods=["post"], detail=True, permission_classes=[IsAuthenticated, IsSellerOrReadOnly], url_path="off-shelf")
+    @action(
+        methods=["post"],
+        detail=True,
+        permission_classes=[IsAuthenticated, IsSellerOrReadOnly],
+        url_path="off-shelf",
+    )
     def off_shelf(self, request, pk=None):
         product = self.get_object()
         product.status = Product.Status.OFF_SHELF
         product.save(update_fields=["status", "updated_at"])
         return success({"id": product.id, "status": product.status}, message="已下架")
 
-    @action(methods=["post"], detail=True, permission_classes=[IsAuthenticated, IsSellerOrReadOnly], url_path="mark-sold")
+    @action(
+        methods=["post"],
+        detail=True,
+        permission_classes=[IsAuthenticated, IsSellerOrReadOnly],
+        url_path="mark-sold",
+    )
     def mark_sold(self, request, pk=None):
         product = self.get_object()
         product.status = Product.Status.SOLD
@@ -100,10 +124,14 @@ class ProductViewSet(viewsets.ModelViewSet):
     @action(methods=["get"], detail=False, permission_classes=[AllowAny], url_path="feed")
     def feed(self, request):
         """
-        主页商品流：支持搜索、分类、排序
+        主页商品流：支持搜索、分类、排序、校区筛选
         """
         queryset = self.filter_queryset(
-            self.get_queryset().filter(status=Product.Status.ON_SALE)
+            self._apply_campus_filter(
+                Product.objects.select_related("category", "seller")
+                .prefetch_related("images")
+                .filter(status=Product.Status.ON_SALE)
+            )
         )
         page = self.paginate_queryset(queryset)
         if page is not None:
@@ -116,13 +144,25 @@ class ProductViewSet(viewsets.ModelViewSet):
     @action(methods=["get"], detail=False, permission_classes=[AllowAny], url_path="recommendations")
     def recommendations(self, request):
         """
-        简单推荐：最新 + 热门（后续可接推荐算法）
+        简单推荐：最新 + 热门（支持按校区筛选）
         """
-        base_qs = Product.objects.filter(status=Product.Status.ON_SALE).select_related("category", "seller").prefetch_related("images")
+        base_qs = (
+            Product.objects.filter(status=Product.Status.ON_SALE)
+            .select_related("category", "seller")
+            .prefetch_related("images")
+        )
+        base_qs = self._apply_campus_filter(base_qs)
+
         newest = base_qs.order_by("-created_at")[:10]
         hot = base_qs.order_by("-like_count", "-view_count", "-created_at")[:10]
 
-        return success({
-            "newest": ProductListSerializer(newest, many=True, context={"request": request}).data,
-            "hot": ProductListSerializer(hot, many=True, context={"request": request}).data,
-        })
+        return success(
+            {
+                "newest": ProductListSerializer(
+                    newest, many=True, context={"request": request}
+                ).data,
+                "hot": ProductListSerializer(
+                    hot, many=True, context={"request": request}
+                ).data,
+            }
+        )
