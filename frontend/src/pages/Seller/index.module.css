@@ -16,6 +16,10 @@
   box-shadow: 0 18px 52px rgba(0, 0, 0, 0.1);
 }
 
+.backRow {
+  margin-bottom: 8px;
+}
+
 .top {
   display: flex;
   justify-content: space-between;
@@ -41,6 +45,14 @@
   align-items: center;
   gap: 6px;
   margin-top: 4px;
+}
+
+.ratingText {
+  font-weight: 700;
+}
+
+.rateBtn {
+  margin-left: 6px;
 }
 
 .onlineDot {

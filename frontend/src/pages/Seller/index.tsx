@@ -1,7 +1,8 @@
 import { useMemo } from 'react';
 import { Avatar, Button, Card, Grid, Space, Tag, Typography } from '@arco-design/web-react';
-import { IconMessage, IconStar, IconUser } from '@arco-design/web-react/icon';
+import { IconMessage, IconUser } from '@arco-design/web-react/icon';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useSellerReviewStore } from '@/store/sellerReview';
 import { useSocialStore } from '@/store/social';
 import styles from './index.module.css';
 
@@ -49,6 +50,7 @@ export default function SellerPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { isFollowingSeller, toggleFollowSeller } = useSocialStore();
+  const reviewsBySeller = useSellerReviewStore((s) => s.reviewsBySeller);
   const fromMessages = (location.state as { fromMessages?: boolean } | null)?.fromMessages;
 
   const seller = useMemo(() => {
@@ -60,10 +62,25 @@ export default function SellerPage() {
     () => MOCK_PRODUCTS.filter((p) => p.sellerId === seller.id),
     [seller.id],
   );
+  const sellerReviews = reviewsBySeller[seller.id] || [];
+  const shownRating = useMemo(() => {
+    if (sellerReviews.length === 0) return seller.rating;
+    const avg = sellerReviews.reduce((sum, item) => sum + item.score, 0) / sellerReviews.length;
+    return avg;
+  }, [seller.rating, sellerReviews]);
+
+  const handleBack = () => {
+    navigate('/');
+  };
 
   return (
     <div className={styles.wrapper}>
       <Card className={styles.card} bordered={false}>
+        <div className={styles.backRow}>
+          <Button type="text" onClick={handleBack}>
+            返回上一页
+          </Button>
+        </div>
         <div className={styles.top}>
           <div className={styles.sellerInfo}>
             <Avatar size={68} className={styles.avatar}>
@@ -77,8 +94,23 @@ export default function SellerPage() {
               <div className={styles.subRow}>
                 {seller.online && <span className={styles.onlineDot} />}
                 <Text type="secondary">{seller.online ? '在线' : '离线'}</Text>
-                <IconStar />
-                <Text>{seller.rating.toFixed(1)}</Text>
+                <Text className={styles.ratingText}>{shownRating.toFixed(1)} / 5.0</Text>
+                <Button
+                  size="mini"
+                  type="outline"
+                  className={styles.rateBtn}
+                  onClick={() => navigate(`/seller/${seller.id}/reviews`)}
+                >
+                  查看评价
+                </Button>
+                <Button
+                  size="mini"
+                  type="primary"
+                  className={styles.rateBtn}
+                  onClick={() => navigate(`/seller/${seller.id}/rate`, { state: { sellerName: seller.name } })}
+                >
+                  给他评价
+                </Button>
               </div>
             </div>
           </div>

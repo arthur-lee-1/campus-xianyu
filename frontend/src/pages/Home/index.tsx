@@ -133,7 +133,7 @@ export default function Home() {
       <header className={styles.header}>
         <div className={styles.titleRow}>
           <Title heading={3} className={styles.appTitle}>
-            校园集市
+            校园二手集市
           </Title>
           <Button type="text" size="small" onClick={handleLogout}>
             退出登录

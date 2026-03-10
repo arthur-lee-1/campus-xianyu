@@ -14,6 +14,8 @@ import Notification from '@/pages/Notification';
 import TransactionList from '@/pages/Transaction/List';
 import TransactionDetail from '@/pages/Transaction/Detail';
 import SellerPage from '@/pages/Seller';
+import SellerRatePage from '@/pages/Seller/Rate';
+import SellerReviewsPage from '@/pages/Seller/Reviews';
 import { getAccessToken } from '@/store/auth';
 
 /**
@@ -109,6 +111,16 @@ export const router = createBrowserRouter([
     path: '/seller/:id',
     loader: () => requireAuthOrRedirect('/seller'),
     element: <SellerPage />,
+  },
+  {
+    path: '/seller/:id/rate',
+    loader: () => requireAuthOrRedirect('/seller'),
+    element: <SellerRatePage />,
+  },
+  {
+    path: '/seller/:id/reviews',
+    loader: () => requireAuthOrRedirect('/seller'),
+    element: <SellerReviewsPage />,
   },
 
   // 个人中心

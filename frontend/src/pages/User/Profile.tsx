@@ -5,7 +5,6 @@ import {
   Button,
   Card,
   Divider,
-  Rate,
   Space,
   Tag,
   Typography,
@@ -13,7 +12,6 @@ import {
 import {
   IconUser,
   IconEdit,
-  IconStar,
   IconHome,
   IconUpload,
   IconMessage,
@@ -125,12 +123,6 @@ export default function Profile() {
               <Text className={styles.sectionTitle}>买卖家综合评分</Text>
               <div className={styles.ratingRow}>
                 <Text className={styles.ratingValue}>{MOCK_USER.rating.toFixed(1)}</Text>
-                <Rate
-                  allowHalf
-                  disabled
-                  defaultValue={MOCK_USER.rating}
-                  character={<IconStar />}
-                />
                 <Text type="secondary" style={{ marginLeft: 8 }}>
                   来自 {MOCK_USER.ratingCount} 条评价
                 </Text>
