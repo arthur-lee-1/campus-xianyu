@@ -3,6 +3,7 @@ from django.contrib.auth import get_user_model
 from rest_framework.test import APITestCase, APIClient
 
 from apps.notifications.models import Notification
+from apps.notifications.service import send_notification
 
 
 def create_user_flexible(idx: int):
@@ -59,19 +60,21 @@ class NotificationTests(APITestCase):
         self.c2 = APIClient()
         self.c2.force_authenticate(self.u2)
 
-        Notification.objects.create(
+        send_notification(
             recipient=self.u1,
             category=Notification.Category.SYSTEM,
             title="系统公告",
             content="欢迎使用",
         )
-        Notification.objects.create(
+        send_notification(
             recipient=self.u1,
+            sender=self.u2,
             category=Notification.Category.TRANSACTION,
             title="交易提醒",
             content="有人下单了",
+            extra={"transaction_id": 1, "product_id": 2},
         )
-        Notification.objects.create(
+        send_notification(
             recipient=self.u2,
             category=Notification.Category.SYSTEM,
             title="仅u2可见",
@@ -79,11 +82,6 @@ class NotificationTests(APITestCase):
         )
 
     def _items(self, resp):
-        """
-        兼容两种返回：
-        - 非分页: data = [...]
-        - 分页:   data = {"count":..., "next":..., "previous":..., "results":[...]}
-        """
         data = resp.data["data"]
         if isinstance(data, dict) and "results" in data:
             return data["results"]
@@ -94,8 +92,7 @@ class NotificationTests(APITestCase):
         self.assertEqual(resp.status_code, 200, resp.data)
         items = self._items(resp)
         self.assertEqual(len(items), 2)
-        ids = [x["recipient_id"] for x in items]
-        self.assertTrue(all(i == self.u1.id for i in ids))
+        self.assertTrue(all(x["recipient_id"] == self.u1.id for x in items))
 
     def test_unread_count(self):
         resp = self.c1.get("/api/notifications/unread_count/")
@@ -115,7 +112,8 @@ class NotificationTests(APITestCase):
         self.assertEqual(resp.status_code, 200, resp.data)
         self.assertEqual(resp.data["data"]["updated"], 2)
         self.assertEqual(
-            Notification.objects.filter(recipient=self.u1, is_read=False).count(), 0
+            Notification.objects.filter(recipient=self.u1, is_read=False).count(),
+            0,
         )
 
     def test_filter_by_is_read_and_category(self):
@@ -142,3 +140,12 @@ class NotificationTests(APITestCase):
         resp = self.c1.delete(f"/api/notifications/{n.id}/")
         self.assertEqual(resp.status_code, 200, resp.data)
         self.assertFalse(Notification.objects.filter(id=n.id).exists())
+
+    def test_sender_id_nullable(self):
+        n = Notification.objects.filter(
+            recipient=self.u1,
+            category=Notification.Category.SYSTEM,
+        ).first()
+        resp = self.c1.get(f"/api/notifications/{n.id}/")
+        self.assertEqual(resp.status_code, 200, resp.data)
+        self.assertIsNone(resp.data["data"]["sender_id"])

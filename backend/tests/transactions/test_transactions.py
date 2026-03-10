@@ -213,3 +213,132 @@ class TransactionFlowTests(APITestCase):
         # get_object 基于 queryset 限制，应 404
         resp = other_client.get(f"/api/transactions/{tx_id}/")
         self.assertEqual(resp.status_code, 404, resp.data)
+
+        def test_cannot_create_transaction_for_off_shelf_product(self):
+            self.product.status = Product.Status.OFF_SHELF
+            self.product.save(update_fields=["status"])
+
+            resp = self.buyer_client.post(
+                "/api/transactions/",
+                {"product_id": self.product.id, "price": "66.00"},
+                format="json",
+            )
+            self.assertEqual(resp.status_code, 400, resp.data)
+
+        def test_cannot_create_transaction_for_sold_product(self):
+            self.product.status = Product.Status.SOLD
+            self.product.save(update_fields=["status"])
+
+            resp = self.buyer_client.post(
+                "/api/transactions/",
+                {"product_id": self.product.id, "price": "66.00"},
+                format="json",
+            )
+            self.assertEqual(resp.status_code, 400, resp.data)
+
+        def test_cannot_create_second_active_transaction_for_same_product(self):
+            resp1 = self.buyer_client.post(
+                "/api/transactions/",
+                {"product_id": self.product.id, "price": "66.00"},
+                format="json",
+            )
+            self.assertEqual(resp1.status_code, 201, resp1.data)
+
+            other_buyer = create_user_flexible(4)
+            other_client = APIClient()
+            other_client.force_authenticate(other_buyer)
+
+            resp2 = other_client.post(
+                "/api/transactions/",
+                {"product_id": self.product.id, "price": "66.00"},
+                format="json",
+            )
+            self.assertEqual(resp2.status_code, 400, resp2.data)
+
+        def test_complete_transaction_marks_product_sold(self):
+            resp = self.buyer_client.post(
+                "/api/transactions/",
+                {"product_id": self.product.id, "price": "66.00"},
+                format="json",
+            )
+            self.assertEqual(resp.status_code, 201, resp.data)
+            tx_id = resp.data["data"]["id"]
+
+            resp = self.seller_client.post(f"/api/transactions/{tx_id}/confirm/")
+            self.assertEqual(resp.status_code, 200, resp.data)
+
+            resp = self.buyer_client.post(f"/api/transactions/{tx_id}/complete/")
+            self.assertEqual(resp.status_code, 200, resp.data)
+
+            self.product.refresh_from_db()
+            self.assertEqual(self.product.status, Product.Status.SOLD)
+
+            tx = Transaction.objects.get(pk=tx_id)
+            self.assertEqual(tx.status, Transaction.Status.COMPLETED)
+            self.assertIsNotNone(tx.completed_at)
+
+        def test_cancelled_transaction_cannot_be_completed(self):
+            resp = self.buyer_client.post(
+                "/api/transactions/",
+                {"product_id": self.product.id, "price": "66.00"},
+                format="json",
+            )
+            tx_id = resp.data["data"]["id"]
+
+            resp = self.seller_client.post(f"/api/transactions/{tx_id}/cancel/")
+            self.assertEqual(resp.status_code, 200, resp.data)
+
+            resp = self.buyer_client.post(f"/api/transactions/{tx_id}/complete/")
+            self.assertEqual(resp.status_code, 400, resp.data)
+
+        def test_completed_transaction_cannot_be_cancelled(self):
+            resp = self.buyer_client.post(
+                "/api/transactions/",
+                {"product_id": self.product.id, "price": "66.00"},
+                format="json",
+            )
+            tx_id = resp.data["data"]["id"]
+
+            resp = self.seller_client.post(f"/api/transactions/{tx_id}/confirm/")
+            self.assertEqual(resp.status_code, 200, resp.data)
+
+            resp = self.buyer_client.post(f"/api/transactions/{tx_id}/complete/")
+            self.assertEqual(resp.status_code, 200, resp.data)
+
+            resp = self.seller_client.post(f"/api/transactions/{tx_id}/cancel/")
+            self.assertEqual(resp.status_code, 400, resp.data)
+
+        def test_confirm_sets_confirmed_at(self):
+            resp = self.buyer_client.post(
+                "/api/transactions/",
+                {"product_id": self.product.id, "price": "66.00"},
+                format="json",
+            )
+            tx_id = resp.data["data"]["id"]
+
+            resp = self.seller_client.post(f"/api/transactions/{tx_id}/confirm/")
+            self.assertEqual(resp.status_code, 200, resp.data)
+
+            tx = Transaction.objects.get(pk=tx_id)
+            self.assertEqual(tx.status, Transaction.Status.IN_PROGRESS)
+            self.assertIsNotNone(tx.confirmed_at)
+
+        def test_cancel_sets_cancel_reason_and_cancelled_at(self):
+            resp = self.buyer_client.post(
+                "/api/transactions/",
+                {"product_id": self.product.id, "price": "66.00"},
+                format="json",
+            )
+            tx_id = resp.data["data"]["id"]
+
+            resp = self.buyer_client.post(
+                f"/api/transactions/{tx_id}/cancel/",
+                {"cancel_reason": "不想要了"},
+                format="json",
+            )
+            self.assertEqual(resp.status_code, 200, resp.data)
+
+            tx = Transaction.objects.get(pk=tx_id)
+            self.assertEqual(tx.status, Transaction.Status.CANCELLED)
+            self.assertEqual(tx.cancel_reason, "不想要了")
+            self.assertIsNotNone(tx.cancelled_at)
