@@ -1,13 +1,21 @@
 """
 Django 基础配置（development.py 和 production.py 均继承此文件）
 """
-from pathlib import Path
+"""
+Django 基础配置（development.py 和 production.py 均继承此文件）
+"""
 from pathlib import Path
 from datetime import timedelta
 import os
 from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
+REPO_ROOT = BASE_DIR.parent
+
+# 兼容两种开发方式：
+# 1) README 推荐的仓库根目录 .env
+# 2) 直接放在 backend/ 目录下的 .env
+load_dotenv(REPO_ROOT / ".env")
 load_dotenv(BASE_DIR / ".env")
 
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "dev-only-insecure-key")
@@ -55,8 +63,8 @@ DATABASES = {
         "ENGINE": "django.db.backends.postgresql",
         "NAME": os.environ.get("POSTGRES_DB", "campus_trade"),
         "USER": os.environ.get("POSTGRES_USER", "ct_user"),
-        "PASSWORD": os.environ.get("POSTGRES_PASSWORD", ""),
-        "HOST": os.environ.get("POSTGRES_HOST", "localhost"),
+        "PASSWORD": os.environ.get("POSTGRES_PASSWORD", "147258"),
+        "HOST": os.environ.get("POSTGRES_HOST", "127.0.0.1"),
         "PORT": os.environ.get("POSTGRES_PORT", "5432"),
     }
 }
@@ -65,9 +73,14 @@ DATABASES = {
 CACHES = {
     "default": {
         "BACKEND": "django.core.cache.backends.redis.RedisCache",
-        "LOCATION": os.environ.get("REDIS_URL", "redis://localhost:6379/0"),
+        "LOCATION": os.environ.get("REDIS_URL", "redis://127.0.0.1:6379/0"),
     }
 }
+
+CELERY_BROKER_URL = os.environ.get("CELERY_BROKER_URL", "redis://127.0.0.1:6379/1")
+CELERY_RESULT_BACKEND = os.environ.get("CELERY_RESULT_BACKEND", "redis://127.0.0.1:6379/2")
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
 
 # ── DRF 配置 ──────────────────────────────────────────────────
 REST_FRAMEWORK = {
@@ -118,12 +131,6 @@ COS_SECRET_ID  = os.environ.get("COS_SECRET_ID", "")
 COS_SECRET_KEY = os.environ.get("COS_SECRET_KEY", "")
 COS_BUCKET     = os.environ.get("COS_BUCKET", "")
 COS_REGION     = os.environ.get("COS_REGION", "")
-
-# ── Celery ────────────────────────────────────────────────────
-CELERY_BROKER_URL = os.environ.get("CELERY_BROKER_URL", "redis://localhost:6379/1")
-CELERY_RESULT_BACKEND = os.environ.get("CELERY_RESULT_BACKEND", "redis://localhost:6379/2")
-CELERY_ACCEPT_CONTENT = ["json"]
-CELERY_TASK_SERIALIZER = "json"
 
 # ── API 文档 ──────────────────────────────────────────────────
 SPECTACULAR_SETTINGS = {

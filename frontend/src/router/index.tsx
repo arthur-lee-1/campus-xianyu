@@ -13,6 +13,9 @@ import Chat from '@/pages/Chat';
 import Notification from '@/pages/Notification';
 import TransactionList from '@/pages/Transaction/List';
 import TransactionDetail from '@/pages/Transaction/Detail';
+import SellerPage from '@/pages/Seller';
+import SellerRatePage from '@/pages/Seller/Rate';
+import SellerReviewsPage from '@/pages/Seller/Reviews';
 import { getAccessToken } from '@/store/auth';
 
 /**
@@ -45,6 +48,7 @@ const protectedPaths = [
   '/chat',
   '/notifications',
   '/transactions',
+  '/seller',
 ];
 
 function requireAuthOrRedirect(path: string) {
@@ -102,6 +106,21 @@ export const router = createBrowserRouter([
   {
     path: '/product/:id',
     element: <ProductDetail />,
+  },
+  {
+    path: '/seller/:id',
+    loader: () => requireAuthOrRedirect('/seller'),
+    element: <SellerPage />,
+  },
+  {
+    path: '/seller/:id/rate',
+    loader: () => requireAuthOrRedirect('/seller'),
+    element: <SellerRatePage />,
+  },
+  {
+    path: '/seller/:id/reviews',
+    loader: () => requireAuthOrRedirect('/seller'),
+    element: <SellerReviewsPage />,
   },
 
   // 个人中心

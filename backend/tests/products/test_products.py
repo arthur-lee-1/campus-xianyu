@@ -223,3 +223,35 @@ def test_retrieve_off_shelf_product_by_owner_ok(client, user_seller, product_off
     body = resp.json()
     assert body["code"] == 200
     assert body["data"]["id"] == product_off_shelf.id
+
+@pytest.mark.django_db
+def test_can_filter_products_by_campus(client, user_seller, category):
+    Product.objects.create(
+        seller=user_seller,
+        category=category,
+        campus=Product.Campus.XIHAI,
+        title="西海岸教材",
+        description="测试",
+        price="20.00",
+        original_price="50.00",
+        condition=Product.Condition.GOOD,
+        status=Product.Status.ON_SALE,
+    )
+    Product.objects.create(
+        seller=user_seller,
+        category=category,
+        campus=Product.Campus.LAOSHAN,
+        title="崂山耳机",
+        description="测试",
+        price="88.00",
+        original_price="199.00",
+        condition=Product.Condition.GOOD,
+        status=Product.Status.ON_SALE,
+    )
+
+    resp = client.get("/api/products/?campus=xihai")
+    assert resp.status_code == 200
+    body = resp.json()
+    results = body["data"]["results"] if "results" in body["data"] else body["data"]
+    assert len(results) == 1
+    assert results[0]["campus"] == "xihai"

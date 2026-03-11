@@ -25,8 +25,21 @@ class Product(models.Model):
         FAIR = "fair", "有使用痕迹"
         POOR = "poor", "明显磨损"
 
+    class Campus(models.TextChoices):
+        XIHAI = "xihai", "西海岸校区"
+        LAOSHAN = "laoshan", "崂山校区"
+        YUSHAN = "yushan", "鱼山校区"
+
     seller = models.ForeignKey(User, on_delete=models.CASCADE, related_name="products")
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, related_name="products")
+
+    campus = models.CharField(
+        "校区",
+        max_length=20,
+        choices=Campus.choices,
+        default=Campus.XIHAI,
+        db_index=True,
+    )
 
     title = models.CharField("标题", max_length=60)
     description = models.TextField("描述", max_length=1000)
@@ -48,6 +61,7 @@ class Product(models.Model):
             models.Index(fields=["category", "-created_at"]),
             models.Index(fields=["seller"]),
             models.Index(fields=["status"]),
+            models.Index(fields=["campus", "status", "-created_at"]),
         ]
         verbose_name = "商品"
 

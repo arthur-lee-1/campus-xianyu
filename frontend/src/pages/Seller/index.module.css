@@ -1,0 +1,114 @@
+.wrapper {
+  min-height: 100vh;
+  padding: 16px 12px 72px;
+  background:
+    radial-gradient(900px 420px at 0% 0%, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0) 60%),
+    radial-gradient(700px 360px at 100% 10%, rgba(193, 222, 255, 0.55), rgba(255, 255, 255, 0) 65%),
+    linear-gradient(180deg, #f2f7ff 0%, #e0f1ff 32%, #eef7ff 70%, #ffffff 100%);
+  display: flex;
+  justify-content: center;
+}
+
+.card {
+  width: 100%;
+  max-width: 900px;
+  border-radius: 18px;
+  box-shadow: 0 18px 52px rgba(0, 0, 0, 0.1);
+}
+
+.backRow {
+  margin-bottom: 8px;
+}
+
+.top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.sellerInfo {
+  display: flex;
+  gap: 12px;
+}
+
+.avatar {
+  background: linear-gradient(135deg, #2f54eb, #1890ff);
+}
+
+.name {
+  margin: 0;
+}
+
+.subRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.ratingText {
+  font-weight: 700;
+}
+
+.rateBtn {
+  margin-left: 6px;
+}
+
+.onlineDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #52c41a;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bio {
+  margin-top: 8px;
+}
+
+.sectionHeader {
+  margin-top: 10px;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sectionTitle {
+  font-weight: 700;
+}
+
+.productCard {
+  border-radius: 14px;
+  margin-bottom: 10px;
+}
+
+.thumb {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(186, 220, 255, 0.95), rgba(64, 169, 255, 0.9));
+  margin-bottom: 8px;
+}
+
+.productTitle {
+  font-weight: 600;
+}
+
+.metaRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.price {
+  color: #d46b08;
+  font-weight: 700;
+}
+
