@@ -1,9 +1,15 @@
-import { useMemo } from 'react';
-import { Avatar, Button, Card, Grid, Space, Tag, Typography } from '@arco-design/web-react';
+import { useEffect, useMemo, useState } from 'react';
+import { Avatar, Button, Card, Empty, Grid, Message, Space, Spin, Tag, Typography } from '@arco-design/web-react';
 import { IconMessage, IconUser } from '@arco-design/web-react/icon';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import { useSellerReviewStore } from '@/store/sellerReview';
-import { useSocialStore } from '@/store/social';
+import {
+  followUser,
+  getMyFollowing,
+  parseInteractionApiError,
+  unfollowUser,
+} from '@/api/interactions';
+import { getProductFeed, type ProductListItem } from '@/api/products';
+import { getSellerReviews } from '@/api/sellerReviews';
 import styles from './index.module.css';
 
 const { Title, Text, Paragraph } = Typography;
@@ -33,14 +39,6 @@ const MOCK_SELLERS: SellerInfo[] = [
   { id: 3, name: '崂山小王', campus: '中国海洋大学 · 崂山校区', bio: '常驻崂山，晚上可交易。', rating: 4.6, online: false },
 ];
 
-const MOCK_PRODUCTS: SellerProduct[] = [
-  { id: 1, sellerId: 1, title: '线代教材（含课堂笔记）', price: 5, status: 'on_sale' },
-  { id: 7, sellerId: 1, title: '高数教材套装', price: 12, status: 'on_sale' },
-  { id: 2, sellerId: 2, title: '护眼台灯', price: 35, status: 'on_sale' },
-  { id: 8, sellerId: 2, title: '宿舍收纳箱', price: 16, status: 'sold' },
-  { id: 3, sellerId: 3, title: '二手吉他', price: 260, status: 'on_sale' },
-];
-
 function statusTag(status: SellerProduct['status']) {
   return status === 'on_sale' ? <Tag color="green">在售</Tag> : <Tag color="arcoblue">已售</Tag>;
 }
@@ -49,8 +47,11 @@ export default function SellerPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
-  const { isFollowingSeller, toggleFollowSeller } = useSocialStore();
-  const reviewsBySeller = useSellerReviewStore((s) => s.reviewsBySeller);
+  const [isFollowingSeller, setIsFollowingSeller] = useState(false);
+  const [isFollowingLoading, setIsFollowingLoading] = useState(false);
+  const [sellerProducts, setSellerProducts] = useState<ProductListItem[]>([]);
+  const [productLoading, setProductLoading] = useState(false);
+  const [reviewsScore, setReviewsScore] = useState<number | null>(null);
   const fromMessages = (location.state as { fromMessages?: boolean } | null)?.fromMessages;
 
   const seller = useMemo(() => {
@@ -58,16 +59,38 @@ export default function SellerPage() {
     return MOCK_SELLERS.find((s) => s.id === sid) ?? MOCK_SELLERS[0];
   }, [id]);
 
-  const sellerProducts = useMemo(
-    () => MOCK_PRODUCTS.filter((p) => p.sellerId === seller.id),
-    [seller.id],
-  );
-  const sellerReviews = reviewsBySeller[seller.id] || [];
-  const shownRating = useMemo(() => {
-    if (sellerReviews.length === 0) return seller.rating;
-    const avg = sellerReviews.reduce((sum, item) => sum + item.score, 0) / sellerReviews.length;
-    return avg;
-  }, [seller.rating, sellerReviews]);
+  const shownRating = useMemo(() => reviewsScore ?? seller.rating, [reviewsScore, seller.rating]);
+
+  useEffect(() => {
+    let mounted = true;
+    setProductLoading(true);
+    getProductFeed()
+      .then((list) => {
+        if (!mounted) return;
+        setSellerProducts(list.filter((item) => item.seller.id === seller.id));
+      })
+      .finally(() => {
+        if (!mounted) return;
+        setProductLoading(false);
+      });
+    getMyFollowing()
+      .then((list) => {
+        if (!mounted) return;
+        setIsFollowingSeller(list.some((item) => item.followed_id === seller.id));
+      })
+      .catch(() => {
+        if (!mounted) return;
+        setIsFollowingSeller(false);
+      });
+    getSellerReviews(seller.id).then((list) => {
+      if (!mounted || list.length === 0) return;
+      const avg = list.reduce((sum, item) => sum + item.score, 0) / list.length;
+      setReviewsScore(avg);
+    });
+    return () => {
+      mounted = false;
+    };
+  }, [seller.id]);
 
   const handleBack = () => {
     navigate('/');
@@ -118,7 +141,23 @@ export default function SellerPage() {
             <Button
               type={isFollowingSeller ? 'outline' : 'primary'}
               size="small"
-              onClick={toggleFollowSeller}
+              loading={isFollowingLoading}
+              onClick={async () => {
+                try {
+                  setIsFollowingLoading(true);
+                  if (isFollowingSeller) {
+                    await unfollowUser(seller.id);
+                    setIsFollowingSeller(false);
+                  } else {
+                    await followUser(seller.id);
+                    setIsFollowingSeller(true);
+                  }
+                } catch (e) {
+                  Message.error(parseInteractionApiError(e, '关注操作失败'));
+                } finally {
+                  setIsFollowingLoading(false);
+                }
+              }}
             >
               {isFollowingSeller ? '已关注' : '关注'}
             </Button>
@@ -145,24 +184,30 @@ export default function SellerPage() {
         </div>
 
         <Row gutter={12}>
-          {sellerProducts.map((item) => (
-            <Col key={item.id} xs={12} sm={8}>
-              <Card
-                className={styles.productCard}
-                hoverable
-                onClick={() => navigate(`/product/${item.id}`)}
-              >
-                <div className={styles.thumb} />
-                <Space direction="vertical" size={4} style={{ width: '100%' }}>
-                  <Text className={styles.productTitle}>{item.title}</Text>
-                  <div className={styles.metaRow}>
-                    <Text className={styles.price}>￥{item.price}</Text>
-                    {statusTag(item.status)}
-                  </div>
-                </Space>
-              </Card>
-            </Col>
-          ))}
+          {productLoading ? (
+            <Spin style={{ margin: '20px auto', display: 'block' }} />
+          ) : sellerProducts.length === 0 ? (
+            <Empty description="该商家暂时没有在售商品" />
+          ) : (
+            sellerProducts.map((item) => (
+              <Col key={item.id} xs={12} sm={8}>
+                <Card
+                  className={styles.productCard}
+                  hoverable
+                  onClick={() => navigate(`/product/${item.id}`)}
+                >
+                  <div className={styles.thumb} />
+                  <Space direction="vertical" size={4} style={{ width: '100%' }}>
+                    <Text className={styles.productTitle}>{item.title}</Text>
+                    <div className={styles.metaRow}>
+                      <Text className={styles.price}>￥{Number(item.price)}</Text>
+                      {statusTag(item.status === 'off_shelf' ? 'sold' : item.status)}
+                    </div>
+                  </Space>
+                </Card>
+              </Col>
+            ))
+          )}
         </Row>
       </Card>
     </div>

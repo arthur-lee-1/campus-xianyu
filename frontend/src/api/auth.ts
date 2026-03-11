@@ -1,5 +1,6 @@
 import { AxiosError } from 'axios';
 import { http } from '@/api/http';
+import { FEATURE_FLAGS } from '@/config/featureFlags';
 import type { AuthUser } from '@/store/auth';
 
 type ApiResp<T> = {
@@ -16,6 +17,7 @@ type LoginData = {
 };
 
 function canFallbackToMockAuth(err: unknown) {
+  if (!FEATURE_FLAGS.USE_MOCK_FALLBACK) return false;
   const e = err as AxiosError;
   const status = e.response?.status;
   // 后端未启动/接口未就绪/网关不可用时，允许前端演示模式兜底

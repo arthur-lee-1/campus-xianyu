@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Button,
   Badge,
@@ -20,6 +20,12 @@ import {
   IconUser,
 } from '@arco-design/web-react/icon';
 import { useNavigate } from 'react-router-dom';
+import {
+  createProduct,
+  getProductCategories,
+  parseProductApiError,
+  type ProductCategory,
+} from '@/api/products';
 import { useTotalUnreadCount } from '@/store/message';
 import styles from './Publish.module.css';
 
@@ -33,24 +39,58 @@ type FormValues = {
   title: string;
   price: number | string;
   campus: Campus;
-  category: string;
-  condition: 'new' | 'nine' | 'eight' | 'other';
+  category: number;
+  condition: 'like_new' | 'good' | 'fair' | 'poor';
   description?: string;
-  images: any[];
+  images: Array<{ file?: { originFile?: File } }>;
 };
 
 export default function Publish() {
   const navigate = useNavigate();
   const unreadTotal = useTotalUnreadCount();
   const [submitting, setSubmitting] = useState(false);
+  const [loadingCategories, setLoadingCategories] = useState(false);
+  const [categories, setCategories] = useState<ProductCategory[]>([]);
   const [form] = Form.useForm<FormValues>();
 
-  const handleSubmit = async () => {
+  useEffect(() => {
+    let mounted = true;
+    setLoadingCategories(true);
+    getProductCategories()
+      .then((list) => {
+        if (!mounted) return;
+        setCategories(list);
+      })
+      .catch((e) => {
+        if (!mounted) return;
+        Message.error(parseProductApiError(e, '分类加载失败'));
+      })
+      .finally(() => {
+        if (!mounted) return;
+        setLoadingCategories(false);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const handleSubmit = async (values: FormValues) => {
     setSubmitting(true);
     try {
-      await new Promise((r) => setTimeout(r, 800));
+      await createProduct({
+        title: values.title.trim(),
+        price: Number(values.price),
+        category: Number(values.category),
+        campus: values.campus,
+        description: values.description?.trim() || '',
+        condition: values.condition,
+        image_files: (values.images || [])
+          .map((item) => item.file?.originFile)
+          .filter(Boolean) as File[],
+      });
       Message.success('发布成功，可在“我的商品”中查看');
       form.resetFields();
+      navigate('/');
     } catch {
       Message.error('发布失败，请稍后重试');
     } finally {
@@ -86,7 +126,7 @@ export default function Publish() {
                   layout="vertical"
                   initialValues={{
                     campus: 'xihai',
-                    condition: 'nine',
+                    condition: 'good',
                     images: [],
                   }}
                   onSubmit={handleSubmit}
@@ -143,12 +183,12 @@ export default function Publish() {
                         label="商品分类"
                         rules={[{ required: true, message: '请选择分类' }]}
                       >
-                        <Select placeholder="请选择分类">
-                          <Select.Option value="book">教材 / 书籍</Select.Option>
-                          <Select.Option value="digital">数码 / 电器</Select.Option>
-                          <Select.Option value="furniture">宿舍家具</Select.Option>
-                          <Select.Option value="sport">运动用品</Select.Option>
-                          <Select.Option value="other">其他</Select.Option>
+                        <Select placeholder="请选择分类" loading={loadingCategories}>
+                          {categories.map((item) => (
+                            <Select.Option key={item.id} value={item.id}>
+                              {item.name}
+                            </Select.Option>
+                          ))}
                         </Select>
                       </Form.Item>
                     </Col>
@@ -160,13 +200,10 @@ export default function Publish() {
                     rules={[{ required: true, message: '请选择新旧程度' }]}
                   >
                     <Select placeholder="请选择新旧程度">
-                      <Select.Option value="new">全新</Select.Option>
-                      <Select.Option value="nine_half">9.5成新</Select.Option>
-                      <Select.Option value="nine">9成新</Select.Option>
-                      <Select.Option value="eight">8成新</Select.Option>
-                      <Select.Option value="seven">7成新</Select.Option>
-                      <Select.Option value="five">5成新</Select.Option>
-                      <Select.Option value="other">其他</Select.Option>
+                      <Select.Option value="like_new">几乎全新</Select.Option>
+                      <Select.Option value="good">成色良好</Select.Option>
+                      <Select.Option value="fair">有使用痕迹</Select.Option>
+                      <Select.Option value="poor">明显磨损</Select.Option>
                     </Select>
                   </Form.Item>
 
@@ -180,7 +217,7 @@ export default function Publish() {
                   </Form.Item>
 
                   <Form.Item field="images" label="商品图片" triggerPropName="fileList">
-                    <Upload listType="picture-card" multiple limit={9} action="/">
+                    <Upload listType="picture-card" multiple limit={9} autoUpload={false}>
                       <div style={{ textAlign: 'center' }}>
                         <IconPlus />
                         <div style={{ marginTop: 4 }}>上传</div>

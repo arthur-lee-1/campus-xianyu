@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Avatar, Badge, Button, Input, Modal, Space, Typography } from '@arco-design/web-react';
+import { Avatar, Badge, Button, Empty, Input, Modal, Space, Spin, Typography } from '@arco-design/web-react';
 import {
   IconHome,
   IconUpload,
@@ -22,6 +22,8 @@ export default function Notification() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const conversations = useMessageStore((s) => s.conversations);
   const messagesByConversation = useMessageStore((s) => s.messagesByConversation);
+  const initialized = useMessageStore((s) => s.initialized);
+  const initFromCache = useMessageStore((s) => s.initFromCache);
   const getOrCreateConversation = useMessageStore((s) => s.getOrCreateConversation);
   const setActiveConversationRead = useMessageStore((s) => s.setActiveConversationRead);
   const sendTextMessage = useMessageStore((s) => s.sendTextMessage);
@@ -38,6 +40,10 @@ export default function Notification() {
     [activeId, conversations],
   );
   const activeMessages = activeConversation ? messagesByConversation[activeConversation.id] || [] : [];
+
+  useEffect(() => {
+    void initFromCache();
+  }, [initFromCache]);
 
   useEffect(() => {
     if (!peerId) return;
@@ -133,8 +139,15 @@ export default function Notification() {
           </header>
 
           <main className={styles.messageList}>
-            {activeMessages.map((m) => (
-              <div key={m.id}>
+            {!initialized ? (
+              <Spin style={{ margin: '28px auto', display: 'block' }} />
+            ) : !activeConversation ? (
+              <Empty description="暂无会话，去商品页点“联系卖家”试试" />
+            ) : activeMessages.length === 0 ? (
+              <Empty description="还没有消息，先打个招呼吧" />
+            ) : (
+              activeMessages.map((m) => (
+                <div key={m.id}>
                 {/* 微信风格：时间放在消息上方中间 */}
                 <div className={styles.timeCenter}>{m.time}</div>
                 <div className={`${styles.msgRow} ${m.fromMe ? styles.msgMine : ''}`}>
@@ -164,8 +177,9 @@ export default function Notification() {
                     )}
                   </div>
                 </div>
-              </div>
-            ))}
+                </div>
+              ))
+            )}
           </main>
 
           <footer className={styles.chatFooter}>

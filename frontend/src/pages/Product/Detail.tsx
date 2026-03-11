@@ -5,17 +5,34 @@ import {
   Card,
   Carousel,
   Divider,
+  Empty,
   Grid,
   Input,
   Message,
+  Spin,
   Space,
   Tag,
   Typography,
 } from '@arco-design/web-react';
 import { IconHeart, IconMessage, IconStar, IconUser } from '@arco-design/web-react/icon';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import {
+  getProductDetail as fetchProductDetailApi,
+  offShelfProduct,
+  parseProductApiError,
+  type ProductDetail as ApiProductDetail,
+} from '@/api/products';
+import {
+  createProductComment,
+  followUser,
+  getMyFollowing,
+  getProductComments,
+  parseInteractionApiError,
+  toggleFavorite,
+  unfollowUser,
+} from '@/api/interactions';
+import { useAuthStore } from '@/store/auth';
 import { useMessageStore } from '@/store/message';
-import { useSocialStore } from '@/store/social';
 import styles from './Detail.module.css';
 
 const { Title, Paragraph, Text } = Typography;
@@ -156,11 +173,33 @@ function statusTag(status: Product['status']) {
   return <Tag color="gray">已下架</Tag>;
 }
 
+function mapApiProductToView(data: ApiProductDetail): Product {
+  const campus: CampusKey = data.campus || 'xihai';
+  return {
+    id: data.id,
+    title: data.title,
+    price: Number(data.price),
+    campus,
+    category: data.category?.name || '未分类',
+    condition: data.condition,
+    description: data.description || '',
+    images: (data.images || []).map((img) => img.image_url || '').filter(Boolean),
+    seller: {
+      id: data.seller.id,
+      nickname: data.seller.name,
+      rating: 4.8,
+      ratingCount: 0,
+    },
+    favorites: data.like_count || 0,
+    status: data.status === 'off_shelf' ? 'off' : data.status,
+  };
+}
+
 export default function ProductDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
-  const { isFollowingSeller, toggleFollowSeller, sellerFollowers } = useSocialStore();
+  const currentUser = useAuthStore((s) => s.user);
   const getOrCreateConversation = useMessageStore((s) => s.getOrCreateConversation);
   const sendTextMessage = useMessageStore((s) => s.sendTextMessage);
   const imageInputRef = useRef<HTMLInputElement | null>(null);
@@ -176,10 +215,17 @@ export default function ProductDetail() {
   const [replyingId, setReplyingId] = useState<string | null>(null);
   const [replyDrafts, setReplyDrafts] = useState<Record<string, string>>({});
   const [commentDraft, setCommentDraft] = useState('');
+  const [loadingProduct, setLoadingProduct] = useState(false);
+  const [loadingComments, setLoadingComments] = useState(false);
+  const [commentError, setCommentError] = useState('');
+  const [isFollowingSeller, setIsFollowingSeller] = useState(false);
+  const [followPending, setFollowPending] = useState(false);
+  const [favoritePending, setFavoritePending] = useState(false);
+  const [submittingComment, setSubmittingComment] = useState(false);
   const [editableProduct, setEditableProduct] = useState<Product>(product);
   const images = editableProduct.images.length > 0 ? editableProduct.images : [''];
   const total = images.length;
-  const currentUserId = 0;
+  const currentUserId = currentUser?.id ?? 0;
   const isOwnerFromState = Boolean((location.state as { isOwner?: boolean } | null)?.isOwner);
   const isSelfSeller = currentUserId === editableProduct.seller.id || isOwnerFromState;
   const [isEditingMine, setIsEditingMine] = useState(false);
@@ -188,6 +234,92 @@ export default function ProductDetail() {
     setEditableProduct(product);
     setIsEditingMine(false);
   }, [product]);
+
+  useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      const pid = Number(id);
+      if (!pid) return;
+      setLoadingProduct(true);
+      try {
+        const data = await fetchProductDetailApi(pid);
+        if (!mounted) return;
+        setEditableProduct(mapApiProductToView(data));
+      } catch (e) {
+        Message.warning(parseProductApiError(e, '读取商品详情失败，已使用本地数据'));
+      } finally {
+        if (mounted) setLoadingProduct(false);
+      }
+    };
+    void load();
+    return () => {
+      mounted = false;
+    };
+  }, [id]);
+
+  useEffect(() => {
+    let mounted = true;
+    const loadComments = async () => {
+      const pid = Number(id);
+      if (!pid) return;
+      setLoadingComments(true);
+      setCommentError('');
+      try {
+        const list = await getProductComments(pid);
+        if (!mounted) return;
+        if (list.length === 0) {
+          setComments([]);
+          return;
+        }
+        const topLevel = list
+          .filter((item) => item.parent_id === null)
+          .map((item) => ({
+            id: String(item.id),
+            userId: item.author_id,
+            username: `用户${item.author_id}`,
+            content: item.content,
+            time: item.created_at.slice(0, 16).replace('T', ' '),
+            likes: 0,
+            likedByMe: false,
+            replies: list
+              .filter((child) => child.parent_id === item.id)
+              .map((child) => ({
+                id: String(child.id),
+                userId: child.author_id,
+                username: `用户${child.author_id}`,
+                content: child.content,
+                time: child.created_at.slice(0, 16).replace('T', ' '),
+              })),
+          }));
+        setComments(topLevel);
+      } catch (e) {
+        if (!mounted) return;
+        setCommentError(parseInteractionApiError(e, '评论加载失败，已显示本地示例评论'));
+      } finally {
+        if (mounted) setLoadingComments(false);
+      }
+    };
+    void loadComments();
+    return () => {
+      mounted = false;
+    };
+  }, [id]);
+
+  useEffect(() => {
+    let mounted = true;
+    getMyFollowing()
+      .then((list) => {
+        if (!mounted) return;
+        setIsFollowingSeller(list.some((item) => item.followed_id === editableProduct.seller.id));
+      })
+      .catch(() => {
+        if (!mounted) return;
+        setIsFollowingSeller(false);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, [editableProduct.seller.id]);
 
   const nowText = () => {
     const d = new Date();
@@ -208,56 +340,72 @@ export default function ProductDetail() {
     );
   };
 
-  const submitReply = (commentId: string) => {
+  const submitReply = async (commentId: string) => {
     const text = (replyDrafts[commentId] || '').trim();
     if (!text) return;
-    setComments((prev) =>
-      prev.map((item) => {
-        if (item.id !== commentId) return item;
-        return {
-          ...item,
-          replies: [
-            ...item.replies,
-            {
-              id: `r_${Date.now()}`,
-              userId: 0,
-              username: '我',
-              content: text,
-              time: nowText(),
-            },
-          ],
-        };
-      }),
-    );
+    try {
+      setSubmittingComment(true);
+      await createProductComment(Number(id), text, Number(commentId));
+      setComments((prev) =>
+        prev.map((item) => {
+          if (item.id !== commentId) return item;
+          return {
+            ...item,
+            replies: [
+              ...item.replies,
+              {
+                id: `r_${Date.now()}`,
+                userId: currentUserId,
+                username: currentUser?.nickname || '我',
+                content: text,
+                time: nowText(),
+              },
+            ],
+          };
+        }),
+      );
+    } catch (e) {
+      Message.error(parseInteractionApiError(e, '回复失败，请稍后重试'));
+    } finally {
+      setSubmittingComment(false);
+    }
     setReplyDrafts((prev) => ({ ...prev, [commentId]: '' }));
     setReplyingId(null);
   };
 
-  const submitComment = () => {
+  const submitComment = async () => {
     const text = commentDraft.trim();
     if (!text) return;
-    setComments((prev) => [
-      {
-        id: `c_${Date.now()}`,
-        userId: 0,
-        username: '我',
-        content: text,
-        time: nowText(),
-        likes: 0,
-        likedByMe: false,
-        replies: [],
-      },
-      ...prev,
-    ]);
-    setCommentDraft('');
+    try {
+      setSubmittingComment(true);
+      await createProductComment(Number(id), text);
+      setComments((prev) => [
+        {
+          id: `c_${Date.now()}`,
+          userId: currentUserId,
+          username: currentUser?.nickname || '我',
+          content: text,
+          time: nowText(),
+          likes: 0,
+          likedByMe: false,
+          replies: [],
+        },
+        ...prev,
+      ]);
+      setCommentDraft('');
+    } catch (e) {
+      Message.error(parseInteractionApiError(e, '评论发布失败'));
+    } finally {
+      setSubmittingComment(false);
+    }
   };
 
   const handlePai = () => {
     if (isSelfSeller) return;
-    const cid = getOrCreateConversation(product.seller.id, product.seller.nickname);
-    sendTextMessage(cid, `我拍了你的《${product.title}》商品`, true);
+    const cid = getOrCreateConversation(editableProduct.seller.id, editableProduct.seller.nickname);
+    sendTextMessage(cid, `我拍了你的《${editableProduct.title}》商品`, true);
     navigate('/notifications', {
-      state: { peerId: product.seller.id, peerName: product.seller.nickname },
+      state: { peerId: editableProduct.seller.id, peerName: editableProduct.seller.nickname },
     });
   };
 
@@ -266,11 +414,47 @@ export default function ProductDetail() {
     Message.success('商品信息已更新（前端演示）');
   };
 
-  const handleToggleShelf = () => {
-    setEditableProduct((prev) => ({
-      ...prev,
-      status: prev.status === 'off' ? 'on_sale' : 'off',
-    }));
+  const handleToggleShelf = async () => {
+    try {
+      if (editableProduct.status === 'off') {
+        Message.info('后端暂未提供重新上架接口，当前仅保留已下架状态');
+        return;
+      }
+      await offShelfProduct(editableProduct.id);
+      setEditableProduct((prev) => ({ ...prev, status: 'off' }));
+      Message.success('商品已下架');
+    } catch (e) {
+      Message.error(parseProductApiError(e, '下架失败，请稍后重试'));
+    }
+  };
+
+  const handleToggleFavorite = async () => {
+    try {
+      setFavoritePending(true);
+      await toggleFavorite(editableProduct.id, collected);
+      setCollected((v) => !v);
+    } catch (e) {
+      Message.error(parseInteractionApiError(e, '收藏操作失败'));
+    } finally {
+      setFavoritePending(false);
+    }
+  };
+
+  const handleToggleFollowSeller = async () => {
+    try {
+      setFollowPending(true);
+      if (isFollowingSeller) {
+        await unfollowUser(editableProduct.seller.id);
+        setIsFollowingSeller(false);
+      } else {
+        await followUser(editableProduct.seller.id);
+        setIsFollowingSeller(true);
+      }
+    } catch (e) {
+      Message.error(parseInteractionApiError(e, '关注操作失败'));
+    } finally {
+      setFollowPending(false);
+    }
   };
 
   const handleChangeMainImage = (file?: File) => {
@@ -296,6 +480,7 @@ export default function ProductDetail() {
       <Card className={styles.card} bordered={false}>
         <Row gutter={18} className={styles.layoutRow}>
           <Col xs={24} md={14} className={styles.left}>
+            {loadingProduct ? <Spin style={{ marginBottom: 12 }} /> : null}
             <div className={styles.carouselWrap}>
               <Carousel
                 autoPlay={false}
@@ -354,7 +539,14 @@ export default function ProductDetail() {
             <div className={styles.commentBlock}>
               <div className={styles.blockTitle}>讨论区</div>
               <div className={styles.commentList}>
-                {comments.map((item) => (
+                {loadingComments ? (
+                  <Spin style={{ margin: '20px auto', display: 'block' }} />
+                ) : commentError ? (
+                  <Empty description={commentError} />
+                ) : comments.length === 0 ? (
+                  <Empty description="还没有评论，来发第一条吧" />
+                ) : (
+                  comments.map((item) => (
                   <div key={item.id} className={styles.commentItem}>
                     <Avatar
                       size={36}
@@ -444,7 +636,8 @@ export default function ProductDetail() {
                       )}
                     </div>
                   </div>
-                ))}
+                  ))
+                )}
               </div>
               <div className={styles.commentComposer}>
                 <Input.TextArea
@@ -454,7 +647,7 @@ export default function ProductDetail() {
                   onChange={setCommentDraft}
                 />
                 <div className={styles.commentComposerActions}>
-                  <Button type="primary" onClick={submitComment}>
+                  <Button type="primary" loading={submittingComment} onClick={submitComment}>
                     发表评论
                   </Button>
                 </div>
@@ -548,7 +741,7 @@ export default function ProductDetail() {
                   <Avatar
                     size={44}
                     className={styles.sellerAvatar}
-                    onClick={() => navigate(`/seller/${product.seller.id}`)}
+                    onClick={() => navigate(`/seller/${editableProduct.seller.id}`)}
                   >
                     <IconUser />
                   </Avatar>
@@ -569,7 +762,7 @@ export default function ProductDetail() {
                         </div>
                         <div
                           className={styles.starBarFill}
-                          style={{ width: `${(product.seller.rating / 5) * 100}%` }}
+                          style={{ width: `${(editableProduct.seller.rating / 5) * 100}%` }}
                         >
                           {Array.from({ length: 5 }).map((_, i) => (
                             <IconStar key={i} />
@@ -581,7 +774,7 @@ export default function ProductDetail() {
                         来自 {editableProduct.seller.ratingCount} 条评价
                       </Text>
                       <Text type="secondary" className={styles.sellerCount}>
-                        · 粉丝 {sellerFollowers}
+                        · 粉丝 --
                       </Text>
                     </div>
                   </div>
@@ -590,7 +783,8 @@ export default function ProductDetail() {
                   <Button
                     size="small"
                     type={isFollowingSeller ? 'outline' : 'primary'}
-                    onClick={toggleFollowSeller}
+                    loading={followPending}
+                    onClick={handleToggleFollowSeller}
                   >
                     {isFollowingSeller ? '已关注' : '关注'}
                   </Button>
@@ -616,7 +810,8 @@ export default function ProductDetail() {
                     <Button
                       type="outline"
                       icon={<IconStar />}
-                      onClick={() => setCollected((v) => !v)}
+                      loading={favoritePending}
+                      onClick={handleToggleFavorite}
                     >
                       {collected ? '已收藏' : '收藏'}（{editableProduct.favorites + (collected ? 1 : 0)}）
                     </Button>

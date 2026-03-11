@@ -2,8 +2,8 @@ import { useMemo, useState } from 'react';
 import { Avatar, Button, Card, Input, Message, Rate, Typography } from '@arco-design/web-react';
 import { IconUser } from '@arco-design/web-react/icon';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import { useUserProfileStore } from '@/store/userProfile';
-import { useSellerReviewStore } from '@/store/sellerReview';
+import { createSellerReview } from '@/api/sellerReviews';
+import { useAuthStore } from '@/store/auth';
 import styles from './Rate.module.css';
 
 const { Title, Text } = Typography;
@@ -24,22 +24,29 @@ export default function SellerRatePage() {
 
   const [score, setScore] = useState(5);
   const [content, setContent] = useState('');
-  const nickname = useUserProfileStore((s) => s.nickname);
-  const avatarUrl = useUserProfileStore((s) => s.avatarUrl);
-  const addReview = useSellerReviewStore((s) => s.addReview);
+  const [submitting, setSubmitting] = useState(false);
+  const user = useAuthStore((s) => s.user);
   const disabled = useMemo(() => content.trim().length === 0, [content]);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (disabled) return;
-    addReview({
-      sellerId,
-      score,
-      content: content.trim(),
-      reviewerName: nickname || '我',
-      reviewerAvatar: avatarUrl,
-    });
-    Message.success('评价发布成功');
-    navigate(`/seller/${sellerId}`);
+    try {
+      setSubmitting(true);
+      await createSellerReview({
+        sellerId,
+        score,
+        content: content.trim(),
+        reviewerName: user?.nickname || '我',
+        reviewerAvatar: user?.avatar || undefined,
+      });
+      Message.success('评价发布成功');
+      navigate(`/seller/${sellerId}`);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : '评价发布失败，请稍后重试';
+      Message.error(message);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -47,7 +54,7 @@ export default function SellerRatePage() {
       <Card className={styles.panel} bordered={false}>
         <div className={styles.userLine}>
           <Avatar size={56} className={styles.avatar}>
-            {avatarUrl ? <img src={avatarUrl} alt="我的头像" className={styles.avatarImg} /> : <IconUser />}
+            {user?.avatar ? <img src={user.avatar} alt="我的头像" className={styles.avatarImg} /> : <IconUser />}
           </Avatar>
           <div>
             <Title heading={5} style={{ margin: 0 }}>
@@ -81,7 +88,7 @@ export default function SellerRatePage() {
           </Button>
           <div className={styles.rightActions}>
             <Button onClick={() => navigate(`/seller/${sellerId}`)}>取消</Button>
-            <Button type="primary" disabled={disabled} onClick={handleSubmit}>
+            <Button type="primary" disabled={disabled} loading={submitting} onClick={handleSubmit}>
               发布
             </Button>
           </div>

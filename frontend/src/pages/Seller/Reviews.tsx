@@ -1,7 +1,8 @@
-import { Avatar, Button, Card, Empty, Rate, Typography } from '@arco-design/web-react';
+import { useEffect, useState } from 'react';
+import { Avatar, Button, Card, Empty, Rate, Spin, Typography } from '@arco-design/web-react';
 import { IconUser } from '@arco-design/web-react/icon';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useSellerReviewStore } from '@/store/sellerReview';
+import { getSellerReviews, type SellerReviewDTO } from '@/api/sellerReviews';
 import styles from './Reviews.module.css';
 
 const { Title, Text, Paragraph } = Typography;
@@ -16,8 +17,32 @@ export default function SellerReviewsPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const sellerId = Number(id || 0);
-  const reviews = useSellerReviewStore((s) => s.reviewsBySeller[sellerId] || []);
+  const [reviews, setReviews] = useState<SellerReviewDTO[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const sellerName = SELLER_NAME_MAP[sellerId] || '该用户';
+
+  useEffect(() => {
+    let mounted = true;
+    setLoading(true);
+    setError('');
+    getSellerReviews(sellerId)
+      .then((list) => {
+        if (!mounted) return;
+        setReviews(list);
+      })
+      .catch(() => {
+        if (!mounted) return;
+        setError('评价加载失败，请稍后重试');
+      })
+      .finally(() => {
+        if (!mounted) return;
+        setLoading(false);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, [sellerId]);
 
   return (
     <div className={styles.wrapper}>
@@ -29,7 +54,11 @@ export default function SellerReviewsPage() {
           <Text type="secondary">这里展示的是其他用户对该商家的评价</Text>
         </div>
 
-        {reviews.length === 0 ? (
+        {loading ? (
+          <Spin style={{ margin: '28px auto', display: 'block' }} />
+        ) : error ? (
+          <Empty description={error} />
+        ) : reviews.length === 0 ? (
           <Empty description="暂时还没有评价" />
         ) : (
           <div className={styles.list}>

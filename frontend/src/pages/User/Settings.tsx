@@ -1,8 +1,9 @@
 import { useRef, useState } from 'react';
-import { Avatar, Button, Card, Input, Space, Typography } from '@arco-design/web-react';
+import { Avatar, Button, Card, Input, Message, Space, Typography } from '@arco-design/web-react';
 import { IconUser } from '@arco-design/web-react/icon';
 import { useNavigate } from 'react-router-dom';
-import { useUserProfileStore } from '@/store/userProfile';
+import { patchMe, parseUserApiError } from '@/api/users';
+import { useAuthStore } from '@/store/auth';
 import styles from './Settings.module.css';
 
 const { Title, Text } = Typography;
@@ -10,32 +11,49 @@ const { Title, Text } = Typography;
 export default function Settings() {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const nickname = useUserProfileStore((s) => s.nickname);
-  const bio = useUserProfileStore((s) => s.bio);
-  const avatarUrl = useUserProfileStore((s) => s.avatarUrl);
-  const setProfile = useUserProfileStore((s) => s.setProfile);
+  const user = useAuthStore((s) => s.user);
+  const accessToken = useAuthStore((s) => s.accessToken);
+  const refreshToken = useAuthStore((s) => s.refreshToken);
+  const setSession = useAuthStore((s) => s.setSession);
 
-  const [nextNickname, setNextNickname] = useState(nickname);
-  const [nextBio, setNextBio] = useState(bio);
-  const [nextAvatarUrl, setNextAvatarUrl] = useState<string | null>(avatarUrl);
+  const [nextNickname, setNextNickname] = useState(user?.nickname || '');
+  const [nextBio, setNextBio] = useState(user?.bio || '');
+  const [nextAvatarUrl, setNextAvatarUrl] = useState<string | null>(user?.avatar || null);
+  const [nextAvatarFile, setNextAvatarFile] = useState<File | undefined>(undefined);
+  const [submitting, setSubmitting] = useState(false);
 
   const handleSelectAvatar = (file?: File) => {
     if (!file) return;
     const url = URL.createObjectURL(file);
     setNextAvatarUrl(url);
+    setNextAvatarFile(file);
   };
 
   const handleCancel = () => {
     navigate('/profile');
   };
 
-  const handleSubmit = () => {
-    setProfile({
-      nickname: nextNickname.trim() || nickname,
-      bio: nextBio.trim() || '这个人很神秘，什么都没留下',
-      avatarUrl: nextAvatarUrl,
-    });
-    navigate('/profile');
+  const handleSubmit = async () => {
+    try {
+      setSubmitting(true);
+      const updated = await patchMe({
+        nickname: nextNickname.trim(),
+        bio: nextBio.trim(),
+        avatarFile: nextAvatarFile,
+      });
+      if (accessToken) {
+        setSession({
+          access: accessToken,
+          refresh: refreshToken || undefined,
+          user: updated,
+        });
+      }
+      navigate('/profile');
+    } catch (e) {
+      Message.error(parseUserApiError(e, '资料更新失败，请稍后重试'));
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -104,7 +122,13 @@ export default function Settings() {
             <Button className={styles.ghostBtn} size="large" onClick={handleCancel}>
               取消
             </Button>
-            <Button className={styles.primaryBtn} type="primary" size="large" onClick={handleSubmit}>
+            <Button
+              className={styles.primaryBtn}
+              type="primary"
+              size="large"
+              loading={submitting}
+              onClick={handleSubmit}
+            >
               完成
             </Button>
           </Space>
