@@ -5,6 +5,7 @@ from rest_framework.permissions import IsAuthenticated
 
 from utils.response import success, created
 
+
 from .models import Transaction, Rating
 from .serializers import (
     TransactionCreateSerializer,
@@ -69,6 +70,7 @@ class TransactionViewSet(viewsets.ModelViewSet):
             price=serializer.validated_data.get("price"),
             remark=serializer.validated_data.get("remark", ""),
         )
+
         return created(TransactionSerializer(tx).data, message="交易创建成功")
 
     @action(detail=True, methods=["post"])
@@ -81,7 +83,6 @@ class TransactionViewSet(viewsets.ModelViewSet):
     def complete(self, request, pk=None):
         tx = self.get_object()
         tx = complete_transaction(tx=tx, operator=request.user)
-        return success(TransactionSerializer(tx).data, message="交易已完成")
 
     @action(detail=True, methods=["post"])
     def cancel(self, request, pk=None):
@@ -91,7 +92,7 @@ class TransactionViewSet(viewsets.ModelViewSet):
             operator=request.user,
             cancel_reason=request.data.get("cancel_reason", ""),
         )
-        return success(TransactionSerializer(tx).data, message="交易已取消")
+
 
     @action(detail=True, methods=["post"])
     def rate(self, request, pk=None):
