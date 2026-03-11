@@ -79,9 +79,15 @@ CACHES = {
 }
 
 CELERY_BROKER_URL = os.environ.get("CELERY_BROKER_URL", "redis://127.0.0.1:6379/1")
+<<<<<<< HEAD
 CELERY_RESULT_BACKEND = os.environ.get(
     "CELERY_RESULT_BACKEND", "redis://127.0.0.1:6379/2"
 )
+=======
+CELERY_RESULT_BACKEND = os.environ.get("CELERY_RESULT_BACKEND", "redis://127.0.0.1:6379/2")
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_SERIALIZER = "json"
+>>>>>>> eb230ddf482915c74694b13b4eed31552ce1b2fd
 
 # ── DRF 配置 ──────────────────────────────────────────────────
 REST_FRAMEWORK = {
@@ -131,6 +137,7 @@ COS_SECRET_KEY = os.environ.get("COS_SECRET_KEY", "")
 COS_BUCKET = os.environ.get("COS_BUCKET", "")
 COS_REGION = os.environ.get("COS_REGION", "")
 
+<<<<<<< HEAD
 # ── Celery ────────────────────────────────────────────────────
 CELERY_BROKER_URL = os.environ.get("CELERY_BROKER_URL", "redis://localhost:6379/1")
 CELERY_RESULT_BACKEND = os.environ.get(
@@ -139,6 +146,8 @@ CELERY_RESULT_BACKEND = os.environ.get(
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 
+=======
+>>>>>>> eb230ddf482915c74694b13b4eed31552ce1b2fd
 # ── API 文档 ──────────────────────────────────────────────────
 SPECTACULAR_SETTINGS = {
     "TITLE": "校园集市 API",
