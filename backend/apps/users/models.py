@@ -21,11 +21,23 @@ class UserManager(BaseUserManager):
 
 
 class User(AbstractBaseUser, PermissionsMixin):
+    class Campus(models.TextChoices):
+        XIHAI = "xihai", "西海岸校区"
+        LAOSHAN = "laoshan", "崂山校区"
+        YUSHAN = "yushan", "鱼山校区"
+
     phone = models.CharField("手机号", max_length=11, unique=True)
     nickname = models.CharField("昵称", max_length=30, blank=True)
     avatar = models.ImageField("头像", upload_to="avatars/", blank=True)
     bio = models.TextField("简介", max_length=200, blank=True)
     school = models.CharField("学校", max_length=50, blank=True)
+    campus = models.CharField(
+        "校区",
+        max_length=20,
+        choices=Campus.choices,
+        default=Campus.XIHAI,
+        db_index=True,
+    )
 
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
