@@ -1,6 +1,7 @@
 """
 Django 基础配置（development.py 和 production.py 均继承此文件）
 """
+
 """
 Django 基础配置（development.py 和 production.py 均继承此文件）
 """
@@ -16,7 +17,7 @@ REPO_ROOT = BASE_DIR.parent
 # 1) README 推荐的仓库根目录 .env
 # 2) 直接放在 backend/ 目录下的 .env
 load_dotenv(REPO_ROOT / ".env")
-load_dotenv(BASE_DIR / ".env")
+load_dotenv(BASE_DIR / ".env", override=True)
 
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "dev-only-insecure-key")
 
@@ -78,16 +79,16 @@ CACHES = {
 }
 
 CELERY_BROKER_URL = os.environ.get("CELERY_BROKER_URL", "redis://127.0.0.1:6379/1")
-CELERY_RESULT_BACKEND = os.environ.get("CELERY_RESULT_BACKEND", "redis://127.0.0.1:6379/2")
+CELERY_RESULT_BACKEND = os.environ.get(
+    "CELERY_RESULT_BACKEND", "redis://127.0.0.1:6379/2"
+)
 
 # ── DRF 配置 ──────────────────────────────────────────────────
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",
     ),
-    "DEFAULT_PERMISSION_CLASSES": (
-        "rest_framework.permissions.IsAuthenticated",
-    ),
+    "DEFAULT_PERMISSION_CLASSES": ("rest_framework.permissions.IsAuthenticated",),
     "DEFAULT_PAGINATION_CLASS": "utils.pagination.StandardResultsPagination",
     "PAGE_SIZE": 20,
     "DEFAULT_FILTER_BACKENDS": [
@@ -118,21 +119,23 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 # ── 对象存储（OSS/COS，媒体文件不再存本地）───────────────────
 # 使用 django-storages 统一管理，DEFAULT_FILE_STORAGE 在生产配置中覆盖
 # 阿里云 OSS
-OSS_ACCESS_KEY_ID     = os.environ.get("OSS_ACCESS_KEY_ID", "")
+OSS_ACCESS_KEY_ID = os.environ.get("OSS_ACCESS_KEY_ID", "")
 OSS_ACCESS_KEY_SECRET = os.environ.get("OSS_ACCESS_KEY_SECRET", "")
-OSS_BUCKET_NAME       = os.environ.get("OSS_BUCKET_NAME", "")
-OSS_ENDPOINT          = os.environ.get("OSS_ENDPOINT", "")
-OSS_CUSTOM_DOMAIN     = os.environ.get("OSS_CUSTOM_DOMAIN", "")
+OSS_BUCKET_NAME = os.environ.get("OSS_BUCKET_NAME", "")
+OSS_ENDPOINT = os.environ.get("OSS_ENDPOINT", "")
+OSS_CUSTOM_DOMAIN = os.environ.get("OSS_CUSTOM_DOMAIN", "")
 
 # 腾讯云 COS（与 OSS 二选一，development.py / production.py 中切换）
-COS_SECRET_ID  = os.environ.get("COS_SECRET_ID", "")
+COS_SECRET_ID = os.environ.get("COS_SECRET_ID", "")
 COS_SECRET_KEY = os.environ.get("COS_SECRET_KEY", "")
-COS_BUCKET     = os.environ.get("COS_BUCKET", "")
-COS_REGION     = os.environ.get("COS_REGION", "")
+COS_BUCKET = os.environ.get("COS_BUCKET", "")
+COS_REGION = os.environ.get("COS_REGION", "")
 
 # ── Celery ────────────────────────────────────────────────────
 CELERY_BROKER_URL = os.environ.get("CELERY_BROKER_URL", "redis://localhost:6379/1")
-CELERY_RESULT_BACKEND = os.environ.get("CELERY_RESULT_BACKEND", "redis://localhost:6379/2")
+CELERY_RESULT_BACKEND = os.environ.get(
+    "CELERY_RESULT_BACKEND", "redis://localhost:6379/2"
+)
 CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 
@@ -152,15 +155,15 @@ USE_TZ = True
 # ── 模板 ──────────────────────────────────────────────────────
 TEMPLATES = [
     {
-        'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
-        'APP_DIRS': True,
-        'OPTIONS': {
-            'context_processors': [
-                'django.template.context_processors.debug',
-                'django.template.context_processors.request',
-                'django.contrib.auth.context_processors.auth',
-                'django.contrib.messages.context_processors.messages',
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": [],
+        "APP_DIRS": True,
+        "OPTIONS": {
+            "context_processors": [
+                "django.template.context_processors.debug",
+                "django.template.context_processors.request",
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
             ],
         },
     },
