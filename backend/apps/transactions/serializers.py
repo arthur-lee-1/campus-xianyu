@@ -15,6 +15,7 @@ class TransactionCreateSerializer(serializers.Serializer):
         return value
 
 
+
 class TransactionSerializer(serializers.ModelSerializer):
     product_id = serializers.IntegerField(source="product.id", read_only=True)
     buyer_id = serializers.IntegerField(source="buyer.id", read_only=True)
@@ -34,6 +35,7 @@ class TransactionSerializer(serializers.ModelSerializer):
             "completed_at",
             "cancelled_at",
             "cancel_reason",
+
             "created_at",
             "updated_at",
         )
@@ -83,6 +85,7 @@ class RatingCreateSerializer(serializers.ModelSerializer):
 
         attrs["role"] = role
         attrs["ratee"] = ratee
+
         attrs["rater"] = request.user
         attrs["transaction"] = tx
         return attrs
@@ -91,5 +94,6 @@ class RatingCreateSerializer(serializers.ModelSerializer):
         try:
             with transaction.atomic():
                 return Rating.objects.create(**validated_data)
+
         except IntegrityError:
             raise serializers.ValidationError("该交易当前角色已评分")
