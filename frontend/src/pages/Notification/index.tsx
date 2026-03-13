@@ -20,53 +20,96 @@ export default function Notification() {
   const navigate = useNavigate();
   const location = useLocation();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
   const conversations = useMessageStore((s) => s.conversations);
   const messagesByConversation = useMessageStore((s) => s.messagesByConversation);
-  const initialized = useMessageStore((s) => s.initialized);
-  const initFromCache = useMessageStore((s) => s.initFromCache);
-  const getOrCreateConversation = useMessageStore((s) => s.getOrCreateConversation);
-  const setActiveConversationRead = useMessageStore((s) => s.setActiveConversationRead);
+  const activeConversationId = useMessageStore((s) => s.activeConversationId);
+  const loadingConversations = useMessageStore((s) => s.loadingConversations);
+  const loadingMessages = useMessageStore((s) => s.loadingMessages);
+  const sending = useMessageStore((s) => s.sending);
+
+  const setActiveConversationId = useMessageStore((s) => s.setActiveConversationId);
+  const fetchConversations = useMessageStore((s) => s.fetchConversations);
+  const fetchMessages = useMessageStore((s) => s.fetchMessages);
+  const ensureAndOpenConversation = useMessageStore((s) => s.ensureAndOpenConversation);
   const sendTextMessage = useMessageStore((s) => s.sendTextMessage);
   const sendImageMessage = useMessageStore((s) => s.sendImageMessage);
+  const markConversationRead = useMessageStore((s) => s.markConversationRead);
+  const fetchUnreadTotal = useMessageStore((s) => s.fetchUnreadTotal);
+
   const unreadTotal = useTotalUnreadCount();
-  const incoming = (location.state as { peerName?: string; peerId?: number } | null) ?? null;
-  const peerName = incoming?.peerName;
-  const peerId = incoming?.peerId;
-  const [activeId, setActiveId] = useState<string>(conversations[0]?.id ?? '');
+
+  const incoming =
+    (location.state as { conversationId?: number; peerName?: string; peerId?: number; productId?: number } | null) ?? null;
+
   const [draft, setDraft] = useState('');
+  const [keyword, setKeyword] = useState('');
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+
   const activeConversation = useMemo(
-    () => conversations.find((c) => c.id === activeId) ?? conversations[0],
-    [activeId, conversations],
+    () => conversations.find((c) => c.id === activeConversationId) ?? null,
+    [activeConversationId, conversations],
   );
-  const activeMessages = activeConversation ? messagesByConversation[activeConversation.id] || [] : [];
+
+  const activeMessages = activeConversation
+    ? messagesByConversation[activeConversation.id] || []
+    : [];
 
   useEffect(() => {
-    void initFromCache();
-  }, [initFromCache]);
+    void fetchConversations();
+    void fetchUnreadTotal();
+  }, [fetchConversations, fetchUnreadTotal]);
 
   useEffect(() => {
-    if (!peerId) return;
-    const id = getOrCreateConversation(peerId, peerName || '新商家');
-    setActiveId(id);
-  }, [getOrCreateConversation, peerId, peerName]);
+    if (!incoming?.peerId) return;
+
+    const run = async () => {
+      const id = await ensureAndOpenConversation(incoming.peerId!, incoming.productId);
+      await fetchMessages(id);
+      await markConversationRead(id);
+      await fetchConversations();
+    };
+
+    void run();
+  }, [
+    incoming?.peerId,
+    incoming?.productId,
+    ensureAndOpenConversation,
+    fetchMessages,
+    markConversationRead,
+    fetchConversations,
+  ]);
 
   useEffect(() => {
-    if (!activeConversation || activeConversation.unread <= 0) return;
-    setActiveConversationRead(activeConversation.id);
-  }, [activeConversation, setActiveConversationRead]);
+    if (!activeConversationId) return;
 
-  const sendMessage = () => {
-    const text = draft.trim();
-    if (!text || !activeConversation) return;
-    sendTextMessage(activeConversation.id, text, true);
-    setDraft('');
+    const run = async () => {
+      await fetchMessages(activeConversationId);
+      await markConversationRead(activeConversationId);
+      await fetchConversations();
+    };
+
+    void run();
+  }, [activeConversationId, fetchMessages, markConversationRead, fetchConversations]);
+
+  const handleSearch = async () => {
+    await fetchConversations(keyword.trim() || undefined);
   };
 
-  const sendPhoto = (file?: File) => {
+  const sendMessage = async () => {
+    const text = draft.trim();
+    if (!text || !activeConversation) return;
+
+    await sendTextMessage(activeConversation.id, text);
+    setDraft('');
+    await fetchConversations();
+  };
+
+  const sendPhoto = async (file?: File) => {
     if (!file || !activeConversation) return;
-    const url = URL.createObjectURL(file);
-    sendImageMessage(activeConversation.id, url, true);
+
+    await sendImageMessage(activeConversation.id, file);
+    await fetchConversations();
   };
 
   return (
@@ -74,51 +117,64 @@ export default function Notification() {
       <div className={styles.mainPanel}>
         <aside className={styles.sidebar}>
           <div className={styles.sidebarTop}>
-            <Input prefix={<IconSearch />} placeholder="搜索会话" size="small" />
-            <Button icon={<IconPlus />} size="small" type="text" />
+            <Input
+              value={keyword}
+              onChange={setKeyword}
+              onPressEnter={handleSearch}
+              prefix={<IconSearch />}
+              placeholder="搜索会话"
+              size="small"
+            />
+            <Button icon={<IconPlus />} size="small" type="text" onClick={handleSearch} />
           </div>
 
           <div className={styles.conversationList}>
-            {conversations.map((c) => (
-              <button
-                key={c.id}
-                type="button"
-                className={`${styles.convItem} ${activeId === c.id ? styles.convItemActive : ''}`}
-                onClick={() => setActiveId(c.id)}
-              >
-                <div className={styles.avatarWrap}>
-                  <Badge count={c.unread} dot={c.unread > 0 && c.unread < 1}>
-                    <Avatar
-                      size={46}
-                      className={styles.convAvatar}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigate(`/seller/${c.sellerId}`, {
-                          state: { fromMessages: true },
-                        });
-                      }}
-                    >
-                      {c.name.slice(0, 1)}
-                    </Avatar>
-                  </Badge>
-                  {c.online && <span className={styles.avatarOnlineDot} />}
-                </div>
-                <div className={styles.convMeta}>
-                  <div className={styles.convHead}>
-                    <Text className={styles.convName}>{c.name}</Text>
-                    <Text type="secondary" className={styles.convTime}>
-                      {c.time}
+            {loadingConversations ? (
+              <Spin style={{ margin: '20px auto', display: 'block' }} />
+            ) : conversations.length === 0 ? (
+              <Empty description="暂无会话，去商品页点“联系卖家”试试" />
+            ) : (
+              conversations.map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  className={`${styles.convItem} ${activeConversationId === c.id ? styles.convItemActive : ''}`}
+                  onClick={() => setActiveConversationId(c.id)}
+                >
+                  <div className={styles.avatarWrap}>
+                    <Badge count={c.unread} dot={c.unread > 0 && c.unread < 1}>
+                      <Avatar
+                        size={46}
+                        className={styles.convAvatar}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/seller/${c.peerId}`, {
+                            state: { fromMessages: true },
+                          });
+                        }}
+                      >
+                        {c.name.slice(0, 1)}
+                      </Avatar>
+                    </Badge>
+                    {c.online && <span className={styles.avatarOnlineDot} />}
+                  </div>
+                  <div className={styles.convMeta}>
+                    <div className={styles.convHead}>
+                      <Text className={styles.convName}>{c.name}</Text>
+                      <Text type="secondary" className={styles.convTime}>
+                        {c.time}
+                      </Text>
+                    </div>
+                    <Text type="secondary" className={styles.convPreview}>
+                      {c.preview || '暂无消息'}
+                    </Text>
+                    <Text type="secondary" className={styles.convStatus}>
+                      {c.online ? '在线' : c.lastSeenText || '离线'}
                     </Text>
                   </div>
-                  <Text type="secondary" className={styles.convPreview}>
-                    {c.preview}
-                  </Text>
-                  <Text type="secondary" className={styles.convStatus}>
-                    {c.online ? '在线' : c.lastSeenText || '离线'}
-                  </Text>
-                </div>
-              </button>
-            ))}
+                </button>
+              ))
+            )}
           </div>
         </aside>
 
@@ -139,7 +195,7 @@ export default function Notification() {
           </header>
 
           <main className={styles.messageList}>
-            {!initialized ? (
+            {loadingMessages ? (
               <Spin style={{ margin: '28px auto', display: 'block' }} />
             ) : !activeConversation ? (
               <Empty description="暂无会话，去商品页点“联系卖家”试试" />
@@ -148,35 +204,34 @@ export default function Notification() {
             ) : (
               activeMessages.map((m) => (
                 <div key={m.id}>
-                {/* 微信风格：时间放在消息上方中间 */}
-                <div className={styles.timeCenter}>{m.time}</div>
-                <div className={`${styles.msgRow} ${m.fromMe ? styles.msgMine : ''}`}>
-                  {!m.fromMe && (
-                    <Avatar
-                      size={30}
-                      className={styles.msgAvatar}
-                      onClick={() =>
-                        navigate(`/seller/${activeConversation?.sellerId}`, {
-                          state: { fromMessages: true },
-                        })
-                      }
-                    >
-                      {activeConversation?.name?.slice(0, 1) || '?'}
-                    </Avatar>
-                  )}
-                  <div className={styles.msgBubble}>
-                    {m.type === 'image' ? (
-                      <img
-                        src={m.content}
-                        alt="发送图片"
-                        className={styles.msgImage}
-                        onClick={() => setPreviewImage(m.content)}
-                      />
-                    ) : (
-                      <div>{m.content}</div>
+                  <div className={styles.timeCenter}>{m.time}</div>
+                  <div className={`${styles.msgRow} ${m.fromMe ? styles.msgMine : ''}`}>
+                    {!m.fromMe && (
+                      <Avatar
+                        size={30}
+                        className={styles.msgAvatar}
+                        onClick={() =>
+                          navigate(`/seller/${activeConversation?.peerId}`, {
+                            state: { fromMessages: true },
+                          })
+                        }
+                      >
+                        {activeConversation?.name?.slice(0, 1) || '?'}
+                      </Avatar>
                     )}
+                    <div className={styles.msgBubble}>
+                      {m.type === 'image' ? (
+                        <img
+                          src={m.imageUrl || m.content}
+                          alt="发送图片"
+                          className={styles.msgImage}
+                          onClick={() => setPreviewImage(m.imageUrl || m.content)}
+                        />
+                      ) : (
+                        <div>{m.content}</div>
+                      )}
+                    </div>
                   </div>
-                </div>
                 </div>
               ))
             )}
@@ -197,14 +252,24 @@ export default function Notification() {
                 className={styles.fileInput}
                 onChange={(e) => {
                   const file = e.target.files?.[0];
-                  sendPhoto(file);
+                  void sendPhoto(file);
                   e.currentTarget.value = '';
                 }}
               />
-              <Button type="outline" icon={<IconImage />} onClick={() => fileInputRef.current?.click()}>
+              <Button
+                type="outline"
+                icon={<IconImage />}
+                onClick={() => fileInputRef.current?.click()}
+                loading={sending}
+              >
                 发送图片
               </Button>
-              <Button type="primary" icon={<IconSend />} onClick={sendMessage}>
+              <Button
+                type="primary"
+                icon={<IconSend />}
+                onClick={() => void sendMessage()}
+                loading={sending}
+              >
                 发送
               </Button>
             </div>
@@ -247,4 +312,3 @@ export default function Notification() {
     </div>
   );
 }
-

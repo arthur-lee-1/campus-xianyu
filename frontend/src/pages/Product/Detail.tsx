@@ -200,8 +200,7 @@ export default function ProductDetail() {
   const navigate = useNavigate();
   const location = useLocation();
   const currentUser = useAuthStore((s) => s.user);
-  const getOrCreateConversation = useMessageStore((s) => s.getOrCreateConversation);
-  const sendTextMessage = useMessageStore((s) => s.sendTextMessage);
+  const ensureAndOpenConversation = useMessageStore((s) => s.ensureAndOpenConversation);
   const imageInputRef = useRef<HTMLInputElement | null>(null);
 
   const product = useMemo(() => {
@@ -400,13 +399,26 @@ export default function ProductDetail() {
     }
   };
 
-  const handlePai = () => {
+  const handlePai = async () => {
     if (isSelfSeller) return;
-    const cid = getOrCreateConversation(editableProduct.seller.id, editableProduct.seller.nickname);
-    sendTextMessage(cid, `我拍了你的《${editableProduct.title}》商品`, true);
-    navigate('/notifications', {
-      state: { peerId: editableProduct.seller.id, peerName: editableProduct.seller.nickname },
-    });
+
+    try {
+      const conversationId = await ensureAndOpenConversation(
+        editableProduct.seller.id,
+        editableProduct.id,
+      );
+
+      navigate('/notifications', {
+        state: {
+          conversationId,
+          peerId: editableProduct.seller.id,
+          peerName: editableProduct.seller.nickname,
+          productId: editableProduct.id,
+        },
+      });
+    } catch {
+      Message.error('创建会话失败，请稍后重试');
+    }
   };
 
   const handleSaveMine = () => {
