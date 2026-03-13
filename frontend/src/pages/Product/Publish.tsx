@@ -26,7 +26,7 @@ import {
   parseProductApiError,
   type ProductCategory,
 } from '@/api/products';
-import { useTotalUnreadCount } from '@/store/message';
+import { useMessageStore, useTotalUnreadCount } from '@/store/message';
 import styles from './Publish.module.css';
 
 const { Title, Paragraph, Text } = Typography;
@@ -48,10 +48,15 @@ type FormValues = {
 export default function Publish() {
   const navigate = useNavigate();
   const unreadTotal = useTotalUnreadCount();
+  const fetchUnreadTotal = useMessageStore((s) => s.fetchUnreadTotal);
   const [submitting, setSubmitting] = useState(false);
   const [loadingCategories, setLoadingCategories] = useState(false);
   const [categories, setCategories] = useState<ProductCategory[]>([]);
   const [form] = Form.useForm<FormValues>();
+
+  useEffect(() => {
+    void fetchUnreadTotal();
+  }, [fetchUnreadTotal]);
 
   useEffect(() => {
     let mounted = true;
@@ -59,7 +64,7 @@ export default function Publish() {
     getProductCategories()
       .then((list) => {
         if (!mounted) return;
-        setCategories(list);
+        setCategories(Array.isArray(list) ? list : []);
       })
       .catch((e) => {
         if (!mounted) return;
@@ -184,7 +189,7 @@ export default function Publish() {
                         rules={[{ required: true, message: '请选择分类' }]}
                       >
                         <Select placeholder="请选择分类" loading={loadingCategories}>
-                          {categories.map((item) => (
+                          {(categories || []).map((item) => (
                             <Select.Option key={item.id} value={item.id}>
                               {item.name}
                             </Select.Option>

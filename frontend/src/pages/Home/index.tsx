@@ -8,7 +8,6 @@ import {
   Input,
   Message,
   Spin,
-  Space,
   Tabs,
   Typography,
 } from '@arco-design/web-react';
@@ -23,10 +22,10 @@ import { useNavigate } from 'react-router-dom';
 import { logout as logoutApi, parseApiError } from '@/api/auth';
 import { getProductFeed, parseProductApiError, type ProductListItem } from '@/api/products';
 import { useAuthStore } from '@/store/auth';
-import { useTotalUnreadCount } from '@/store/message';
+import { useMessageStore, useTotalUnreadCount } from '@/store/message';
 import styles from './index.module.css';
 
-const { Title, Paragraph, Text } = Typography;
+const { Title, Text } = Typography;
 const Row = Grid.Row;
 const Col = Grid.Col;
 
@@ -44,6 +43,13 @@ export default function Home() {
   const clearSession = useAuthStore((s) => s.logout);
   const refreshToken = useAuthStore((s) => s.refreshToken);
   const unreadTotal = useTotalUnreadCount();
+  const fetchUnreadTotal = useMessageStore((s) => s.fetchUnreadTotal);
+
+  const [activeCampus, setActiveCampus] = useState<CampusKey | 'all'>('all');
+  const [keyword, setKeyword] = useState('');
+  const [products, setProducts] = useState<ProductListItem[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [errorText, setErrorText] = useState('');
 
   const handleLogout = async () => {
     try {
@@ -58,16 +64,15 @@ export default function Home() {
     }
   };
 
-  const [activeCampus, setActiveCampus] = useState<CampusKey | 'all'>('all');
-  const [keyword, setKeyword] = useState('');
-  const [products, setProducts] = useState<ProductListItem[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [errorText, setErrorText] = useState('');
+  useEffect(() => {
+    void fetchUnreadTotal();
+  }, [fetchUnreadTotal]);
 
   useEffect(() => {
     let mounted = true;
     setLoading(true);
     setErrorText('');
+
     getProductFeed({
       search: keyword.trim() || undefined,
       campus: activeCampus === 'all' ? undefined : activeCampus,
@@ -84,14 +89,13 @@ export default function Home() {
         if (!mounted) return;
         setLoading(false);
       });
+
     return () => {
       mounted = false;
     };
   }, [activeCampus, keyword]);
 
-  const filteredProducts = useMemo(() => {
-    return products;
-  }, [products]);
+  const filteredProducts = useMemo(() => products, [products]);
 
   const campusTitle = useMemo(() => {
     const match = CAMPUS_TABS.find((c) => c.key === activeCampus);
@@ -100,7 +104,6 @@ export default function Home() {
 
   return (
     <div className={styles.wrapper}>
-      {/* 顶部区域：搜索 + 校区 Tabs */}
       <header className={styles.header}>
         <div className={styles.titleRow}>
           <Title heading={3} className={styles.appTitle}>
@@ -134,7 +137,6 @@ export default function Home() {
         </Tabs>
       </header>
 
-      {/* 中间区域：不同校区下的商品展示 */}
       <main className={styles.main}>
         <div className={styles.sectionHeader}>
           <Text className={styles.sectionTitle}>{campusTitle} · 推荐好物</Text>
@@ -162,7 +164,9 @@ export default function Home() {
                     <div className={styles.productTitle}>{item.title}</div>
                     <div className={styles.productMeta}>
                       <span className={styles.productPrice}>￥{Number(item.price)}</span>
-                      <span className={styles.productTag}>{item.category?.name || '未分类'}</span>
+                      <span className={styles.productTag}>
+                        {item.category?.name || '未分类'}
+                      </span>
                     </div>
                   </div>
                 </Card>
@@ -172,7 +176,6 @@ export default function Home() {
         )}
       </main>
 
-      {/* 底部导航：主页 / 上传商品 / 消息 / 个人 */}
       <nav className={styles.bottomNav}>
         <button
           type="button"
@@ -212,4 +215,3 @@ export default function Home() {
     </div>
   );
 }
-

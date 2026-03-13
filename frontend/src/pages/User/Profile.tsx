@@ -20,7 +20,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { getMyFavorites, getMyFollowers, getMyFollowing } from '@/api/interactions';
 import { getProductFeed, type ProductListItem } from '@/api/products';
 import { useAuthStore } from '@/store/auth';
-import { useTotalUnreadCount } from '@/store/message';
+import { useMessageStore, useTotalUnreadCount } from '@/store/message';
 import styles from './Profile.module.css';
 
 const { Title, Paragraph, Text } = Typography;
@@ -31,6 +31,7 @@ export default function Profile() {
   const navigate = useNavigate();
   const location = useLocation();
   const unreadTotal = useTotalUnreadCount();
+  const fetchUnreadTotal = useMessageStore((s) => s.fetchUnreadTotal);
   const user = useAuthStore((s) => s.user);
   const [activeTab, setActiveTab] = useState<TabKey>('products');
   const [feedProducts, setFeedProducts] = useState<ProductListItem[]>([]);
@@ -58,6 +59,10 @@ export default function Profile() {
       setActiveTab(fromState);
     }
   }, [location.state]);
+
+  useEffect(() => {
+    void fetchUnreadTotal();
+  }, [fetchUnreadTotal]);
 
   useEffect(() => {
     let mounted = true;
