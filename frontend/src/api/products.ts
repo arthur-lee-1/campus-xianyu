@@ -89,8 +89,10 @@ export function parseProductApiError(err: unknown, fallback = '请求失败') {
 
 export async function getProductCategories() {
   try {
-    const resp = await http.get<ApiResp<ProductCategory[]>>('/api/products/categories/');
-    return unwrap(resp.data);
+    const resp = await http.get<ApiResp<PaginatedResp<ProductCategory> | ProductCategory[]>>(
+      '/api/products/categories/',
+    );
+    return normalizeList(unwrap(resp.data));
   } catch (e) {
     if (!canFallback(e)) throw e;
     return [
