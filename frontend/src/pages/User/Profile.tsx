@@ -18,7 +18,7 @@ import {
 } from '@arco-design/web-react/icon';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { getMyFavorites, getMyFollowers, getMyFollowing } from '@/api/interactions';
-import { getMyProducts, getProductFeed, type ProductListItem } from '@/api/products';
+import { ensureDemoMyProducts, getMyProducts, getProductFeed, type ProductListItem } from '@/api/products';
 import { useAuthStore } from '@/store/auth';
 import { useTotalUnreadCount } from '@/store/message';
 import styles from './Profile.module.css';
@@ -61,25 +61,33 @@ export default function Profile() {
 
   useEffect(() => {
     let mounted = true;
-    setLoading(true);
-    Promise.all([getProductFeed(), getMyProducts(), getMyFollowing(), getMyFollowers(), getMyFavorites()])
-      .then(([products, myProducts, following, followers, favorites]) => {
-        if (!mounted) return;
-        const myMap = new Map<number, ProductListItem>();
-        myProducts.forEach((item) => myMap.set(item.id, item));
-        const merged = products.map((item) => (myMap.has(item.id) ? myMap.get(item.id)! : item));
-        myProducts.forEach((item) => {
-          if (!merged.find((p) => p.id === item.id)) merged.push(item);
-        });
-        setFeedProducts(merged);
-        setFollowingIds(following.map((item) => item.followed_id));
-        setFollowerIds(followers.map((item) => item.follower_id));
-        setFavoriteIds(favorites.map((item) => item.product_id));
-      })
-      .finally(() => {
-        if (!mounted) return;
-        setLoading(false);
+    const load = async () => {
+      setLoading(true);
+      await ensureDemoMyProducts();
+      const [products, myProducts, following, followers, favorites] = await Promise.all([
+        getProductFeed(),
+        getMyProducts(),
+        getMyFollowing(),
+        getMyFollowers(),
+        getMyFavorites(),
+      ]);
+      if (!mounted) return;
+      const myMap = new Map<number, ProductListItem>();
+      myProducts.forEach((item) => myMap.set(item.id, item));
+      const merged = products.map((item) => (myMap.has(item.id) ? myMap.get(item.id)! : item));
+      myProducts.forEach((item) => {
+        if (!merged.find((p) => p.id === item.id)) merged.push(item);
       });
+      setFeedProducts(merged);
+      setFollowingIds(following.map((item) => item.followed_id));
+      setFollowerIds(followers.map((item) => item.follower_id));
+      setFavoriteIds(favorites.map((item) => item.product_id));
+      setLoading(false);
+    };
+    void load().catch(() => {
+      if (!mounted) return;
+      setLoading(false);
+    });
     return () => {
       mounted = false;
     };
@@ -233,7 +241,10 @@ export default function Profile() {
                       })
                     }
                   >
-                    <div className={styles.productThumb} />
+                    <div
+                      className={styles.productThumb}
+                      style={item.cover_image ? { backgroundImage: `url(${item.cover_image})` } : undefined}
+                    />
                     <Space size={4} direction="vertical" style={{ width: '100%' }}>
                       <Text className={styles.productTitle}>{item.title}</Text>
                       <Tag color="green">在售</Tag>
