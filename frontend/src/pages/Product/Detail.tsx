@@ -417,7 +417,6 @@ export default function ProductDetail() {
   const handleToggleShelf = async () => {
     try {
       if (editableProduct.status === 'off') {
-        Message.info('后端暂未提供重新上架接口，当前仅保留已下架状态');
         return;
       }
       await offShelfProduct(editableProduct.id);
@@ -794,8 +793,13 @@ export default function ProductDetail() {
               <Space className={styles.actionButtons}>
                 {isSelfSeller ? (
                   <>
-                    <Button type="outline" status="danger" onClick={handleToggleShelf}>
-                      {editableProduct.status === 'off' ? '重新上架' : '下架商品'}
+                    <Button
+                      type="outline"
+                      status="danger"
+                      disabled={editableProduct.status === 'off'}
+                      onClick={handleToggleShelf}
+                    >
+                      {editableProduct.status === 'off' ? '已下架' : '下架商品'}
                     </Button>
                     <Button
                       type="primary"

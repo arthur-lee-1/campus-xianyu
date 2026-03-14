@@ -157,7 +157,10 @@ export default function Home() {
                   hoverable
                   onClick={() => navigate(`/product/${item.id}`)}
                 >
-                  <div className={styles.productThumb} />
+                  <div
+                    className={styles.productThumb}
+                    style={item.cover_image ? { backgroundImage: `url(${item.cover_image})` } : undefined}
+                  />
                   <div className={styles.productInfo}>
                     <div className={styles.productTitle}>{item.title}</div>
                     <div className={styles.productMeta}>
