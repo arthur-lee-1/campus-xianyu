@@ -153,6 +153,9 @@
   height: 70px;
   border-radius: 10px;
   background: linear-gradient(135deg, rgba(186, 220, 255, 0.9), rgba(64, 169, 255, 0.9));
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   margin-bottom: 6px;
 }
 

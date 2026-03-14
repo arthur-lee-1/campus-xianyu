@@ -42,7 +42,10 @@ type FormValues = {
   category: number;
   condition: 'like_new' | 'good' | 'fair' | 'poor';
   description?: string;
-  images: Array<{ file?: { originFile?: File } }>;
+  images: Array<{
+    file?: File | { originFile?: File };
+    originFile?: File;
+  }>;
 };
 
 export default function Publish() {
@@ -51,6 +54,8 @@ export default function Publish() {
   const [submitting, setSubmitting] = useState(false);
   const [loadingCategories, setLoadingCategories] = useState(false);
   const [categories, setCategories] = useState<ProductCategory[]>([]);
+  const [uploadFiles, setUploadFiles] = useState<File[]>([]);
+  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [form] = Form.useForm<FormValues>();
 
   useEffect(() => {
@@ -59,7 +64,7 @@ export default function Publish() {
     getProductCategories()
       .then((list) => {
         if (!mounted) return;
-        setCategories(list);
+        setCategories(Array.isArray(list) ? list : []);
       })
       .catch((e) => {
         if (!mounted) return;
@@ -74,6 +79,25 @@ export default function Publish() {
     };
   }, []);
 
+  useEffect(() => {
+    return () => {
+      previewUrls.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [previewUrls]);
+
+  const pickOriginFile = (
+    item: FormValues['images'][number],
+  ): File | undefined => {
+    if (!item) return undefined;
+    if (item.originFile instanceof File) return item.originFile;
+    if (item.file instanceof File) return item.file;
+    if (item.file && typeof item.file === 'object' && 'originFile' in item.file) {
+      const f = (item.file as { originFile?: File }).originFile;
+      return f instanceof File ? f : undefined;
+    }
+    return undefined;
+  };
+
   const handleSubmit = async (values: FormValues) => {
     setSubmitting(true);
     try {
@@ -84,12 +108,13 @@ export default function Publish() {
         campus: values.campus,
         description: values.description?.trim() || '',
         condition: values.condition,
-        image_files: (values.images || [])
-          .map((item) => item.file?.originFile)
-          .filter(Boolean) as File[],
+        image_files: uploadFiles,
       });
       Message.success('发布成功，可在“我的商品”中查看');
       form.resetFields();
+      previewUrls.forEach((url) => URL.revokeObjectURL(url));
+      setPreviewUrls([]);
+      setUploadFiles([]);
       navigate('/');
     } catch {
       Message.error('发布失败，请稍后重试');
@@ -100,6 +125,19 @@ export default function Publish() {
 
   const handleReset = () => {
     form.resetFields();
+    previewUrls.forEach((url) => URL.revokeObjectURL(url));
+    setPreviewUrls([]);
+    setUploadFiles([]);
+  };
+
+  const handleUploadChange = (fileListLike: unknown) => {
+    const list = Array.isArray(fileListLike) ? fileListLike : [];
+    const files = list
+      .map((item) => pickOriginFile(item as FormValues['images'][number]))
+      .filter(Boolean) as File[];
+    previewUrls.forEach((url) => URL.revokeObjectURL(url));
+    setUploadFiles(files);
+    setPreviewUrls(files.map((file) => URL.createObjectURL(file)));
   };
 
   return (
@@ -184,7 +222,7 @@ export default function Publish() {
                         rules={[{ required: true, message: '请选择分类' }]}
                       >
                         <Select placeholder="请选择分类" loading={loadingCategories}>
-                          {categories.map((item) => (
+                          {(categories || []).map((item) => (
                             <Select.Option key={item.id} value={item.id}>
                               {item.name}
                             </Select.Option>
@@ -217,12 +255,43 @@ export default function Publish() {
                   </Form.Item>
 
                   <Form.Item field="images" label="商品图片" triggerPropName="fileList">
-                    <Upload listType="picture-card" multiple limit={9} autoUpload={false}>
+                    <Upload
+                      listType="picture-card"
+                      multiple
+                      limit={9}
+                      autoUpload={false}
+                      onChange={(value) => handleUploadChange(value)}
+                    >
                       <div style={{ textAlign: 'center' }}>
                         <IconPlus />
                         <div style={{ marginTop: 4 }}>上传</div>
                       </div>
                     </Upload>
+                    {previewUrls.length > 0 && (
+                      <div
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: 'repeat(4, minmax(0, 1fr))',
+                          gap: 8,
+                          marginTop: 8,
+                        }}
+                      >
+                        {previewUrls.map((url, idx) => (
+                          <img
+                            key={`${url}_${idx}`}
+                            src={url}
+                            alt={`预览图${idx + 1}`}
+                            style={{
+                              width: '100%',
+                              aspectRatio: '1 / 1',
+                              objectFit: 'cover',
+                              borderRadius: 8,
+                              border: '1px solid rgba(0,0,0,0.08)',
+                            }}
+                          />
+                        ))}
+                      </div>
+                    )}
                     <Text type="secondary" style={{ fontSize: 12 }}>
                       建议上传 1~9 张清晰图片，支持多图上传，后续会接入 OSS 直传。
                     </Text>
